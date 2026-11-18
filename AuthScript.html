@@ -1,0 +1,220 @@
+<script>
+    // ================= AUTHENTICATION & SESSION VERIFICATION =================
+
+    window.onload = () => {
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60000;
+        const wibDate = new Date(now.getTime() + offsetMs + (7 * 3600000));
+        const todayIso = wibDate.toISOString().split('T')[0];
+
+        const elAdminDate = document.getElementById('adminDateFilter');
+        const elSumStart = document.getElementById('sumStartDate');
+        const elSumEnd = document.getElementById('sumEndDate');
+        const elSalesDate = document.getElementById('salesTodayDateLabel');
+
+        if (elAdminDate) elAdminDate.value = todayIso;
+        if (elSumStart) elSumStart.value = todayIso;
+        if (elSumEnd) elSumEnd.value = todayIso;
+        if (elSalesDate) elSalesDate.textContent = todayIso;
+
+        // Muat Logo Aplikasi
+        google.script.run.withSuccessHandler(url => {
+            if (url) {
+                const logoLogin = document.getElementById('appLogoLogin');
+                const logoNav = document.getElementById('appLogoNav');
+                if (logoLogin) logoLogin.src = url;
+                if (logoNav) logoNav.src = url;
+            }
+        }).getLogoUrl();
+
+        // Live Clock Tick
+        setInterval(() => {
+            const d = new Date();
+            const tStr = d.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+            const el1 = document.getElementById('liveClock');
+            const el2 = document.getElementById('salesMobileClock');
+            if (el1) el1.textContent = tStr + ' WIB';
+            if (el2) el2.textContent = tStr;
+        }, 1000);
+
+        // ================= AUTO VERIFIKASI AKUN SAAT DIBUKA / REFRESH =================
+        // Memeriksa langsung ke server apakah akun pengguna masih ada dan aktif di USERS sheet.
+        // Jika akun telah dihapus oleh Admin, sales tidak akan bisa masuk dan dipaksa logout.
+        const savedSession = localStorage.getItem(SESSION_STORAGE_KEY) || sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedSession) {
+            try {
+                const parsed = JSON.parse(savedSession);
+                if (parsed && parsed.username) {
+                    showLoading('Memverifikasi status akun...');
+                    google.script.run
+                        .withSuccessHandler(res => {
+                            hideLoading();
+                            if (res && res.valid) {
+                                // Akun valid: perbarui data terbaru jika ada perubahan role/nama dari Admin
+                                currentUser = res.user;
+                                if (res.settings) workSettings = res.settings;
+                                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentUser));
+                                enterAuthenticatedView();
+                            } else {
+                                // Akun sudah dihapus oleh Admin
+                                handleForceLogout(res && res.message ? res.message : 'Akun Anda tidak ditemukan atau telah dihapus oleh Administrator.');
+                            }
+                        })
+                        .withFailureHandler(err => {
+                            hideLoading();
+                            console.warn('Gagal memverifikasi akun ke server:', err);
+                            // Fallback jika koneksi server sedang error
+                            currentUser = parsed;
+                            enterAuthenticatedView();
+                        })
+                        .verifyUserSession(parsed.username, parsed.id);
+                } else {
+                    localStorage.removeItem(SESSION_STORAGE_KEY);
+                    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+                }
+            } catch (e) {
+                localStorage.removeItem(SESSION_STORAGE_KEY);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+        }
+    };
+
+    // Auto verifikasi saat browser kembali aktif / tab difokuskan
+    window.addEventListener('focus', () => {
+        if (currentUser && currentUser.username) {
+            google.script.run.withSuccessHandler(res => {
+                if (res && !res.valid) {
+                    handleForceLogout('Akun Anda telah dinonaktifkan atau dihapus oleh Administrator.');
+                }
+            }).verifyUserSession(currentUser.username, currentUser.id);
+        }
+    });
+
+    function togglePasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        } else {
+            input.type = 'password';
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+
+    function handleLogin(e) {
+        if (e) e.preventDefault();
+        const uInput = document.getElementById('loginUsername');
+        const pInput = document.getElementById('loginPassword');
+        const u = uInput ? uInput.value.trim() : '';
+        const p = pInput ? pInput.value : '';
+
+        if (!u || !p) {
+            Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Username dan Password wajib diisi.', confirmButtonColor: '#0f766e' });
+            return;
+        }
+
+        showLoading('Memverifikasi akun...');
+
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (!res.success) {
+                Swal.fire({ icon: 'error', title: 'Login Gagal', text: res.message, confirmButtonColor: '#0f766e' });
+                return;
+            }
+
+            currentUser = res.user;
+            if (res.settings) workSettings = res.settings;
+
+            const rememberMe = document.getElementById('rememberMeCheckbox') ? document.getElementById('rememberMeCheckbox').checked : true;
+            if (rememberMe) {
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentUser));
+            } else {
+                sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentUser));
+            }
+
+            // Memicu Browser Chrome / Edge Credential Management API untuk Simpan Sandi otomatis
+            if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) {
+                try {
+                    const cred = new PasswordCredential({
+                        id: u,
+                        password: p,
+                        name: res.user.nama || u
+                    });
+                    navigator.credentials.store(cred).then(() => {
+                        console.log('PasswordCredential berhasil disimpan ke Chrome.');
+                    }).catch(err => {
+                        console.log('Credential store info:', err);
+                    });
+                } catch (err) {
+                    console.log('Credential API info:', err);
+                }
+            }
+
+            enterAuthenticatedView();
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0f766e' });
+        }).loginUser(u, p);
+    }
+
+    function enterAuthenticatedView() {
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('appShell').classList.remove('hidden');
+
+        document.getElementById('navUserName').textContent = currentUser.nama;
+        document.getElementById('navUserSub').textContent = `${currentUser.role} • ${currentUser.stasiun}`;
+
+        const isAdmin = String(currentUser.role).toLowerCase() === 'admin';
+        if (isAdmin) {
+            document.getElementById('adminTopNav').classList.remove('hidden');
+            document.getElementById('adminLeftSidebar').classList.remove('hidden');
+            document.getElementById('salesView').classList.add('hidden');
+            document.getElementById('adminView').classList.remove('hidden');
+            loadAdminData();
+        } else {
+            document.getElementById('adminTopNav').classList.add('hidden');
+            document.getElementById('adminLeftSidebar').classList.add('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('salesView').classList.remove('hidden');
+            loadSalesDashboard();
+        }
+    }
+
+    function handleLogout() {
+        stopCameraStream();
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        currentUser = null;
+        document.getElementById('appShell').classList.add('hidden');
+        document.getElementById('loginView').classList.remove('hidden');
+        const pInput = document.getElementById('loginPassword');
+        if (pInput) pInput.value = '';
+    }
+
+    function handleForceLogout(reasonMessage) {
+        stopCameraStream();
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        currentUser = null;
+        hideLoading();
+        document.getElementById('appShell').classList.add('hidden');
+        document.getElementById('loginView').classList.remove('hidden');
+        const pInput = document.getElementById('loginPassword');
+        if (pInput) pInput.value = '';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sesi Berakhir',
+            text: reasonMessage || 'Akun Anda telah dinonaktifkan atau dihapus oleh Administrator.',
+            confirmButtonColor: '#0f766e'
+        });
+    }
+</script>

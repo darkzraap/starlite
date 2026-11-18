@@ -1,0 +1,177 @@
+<script>
+    // ================= SALES FLOW (AUTO-RESET PER HARI & KUNCI CLOCK-OUT) =================
+    function applyWorkSettingsToUI() {
+        const rIn = document.getElementById('salesRuleIn');
+        const rOut = document.getElementById('salesRuleOut');
+        const hIn = document.getElementById('headerBadgeMaxIn');
+        const hOut = document.getElementById('headerBadgeMinOut');
+        const sIn = document.getElementById('subLabelMaxIn');
+        const sLate = document.getElementById('subLabelLateIn');
+        const setIn = document.getElementById('setMaxClockIn');
+        const setOut = document.getElementById('setMinClockOut');
+
+        if (rIn) rIn.textContent = workSettings.maxClockIn + ' WIB';
+        if (rOut) rOut.textContent = workSettings.minClockOut + ' WIB';
+        if (hIn) hIn.textContent = workSettings.maxClockIn;
+        if (hOut) hOut.textContent = workSettings.minClockOut;
+        if (sIn) sIn.textContent = workSettings.maxClockIn;
+        if (sLate) sLate.textContent = workSettings.maxClockIn;
+        if (setIn) setIn.value = workSettings.maxClockIn;
+        if (setOut) setOut.value = workSettings.minClockOut;
+    }
+
+    function loadSalesDashboard() {
+        if (!currentUser) return;
+        document.getElementById('salesProfileName').textContent = currentUser.nama;
+        document.getElementById('salesBadgeStatus').textContent = currentUser.status;
+        document.getElementById('salesProfProv').textContent = currentUser.provinsi;
+        document.getElementById('salesProfStasiun').textContent = currentUser.stasiun;
+
+        showLoading('Memuat status kehadiran hari ini...');
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (res && res.userNotFound) {
+                handleForceLogout(res.message);
+                return;
+            }
+
+            if (res.settings) {
+                workSettings = res.settings;
+                applyWorkSettingsToUI();
+            }
+            document.getElementById('salesTodayDateLabel').textContent = res.serverDate;
+
+            const rec = res.todayRecord;
+            const btnIn = document.getElementById('btnClockIn');
+            const btnOut = document.getElementById('btnClockOut');
+            const boxIn = document.getElementById('statusBoxIn');
+            const badgeIn = document.getElementById('badgeBoxIn');
+            const boxOut = document.getElementById('statusBoxOut');
+            const badgeOut = document.getElementById('badgeBoxOut');
+            const durEl = document.getElementById('salesWorkDuration');
+            const noticeEl = document.getElementById('salesLockNotice');
+
+            // Jika di hari ini belum ada record (atau sudah ganti hari baru), otomatis reset ke Belum Absen
+            if (!rec) {
+                boxIn.textContent = 'Belum Clock-In';
+                badgeIn.classList.add('hidden');
+                boxOut.textContent = 'Terkunci';
+                badgeOut.classList.add('hidden');
+                durEl.textContent = 'Menunggu Clock-In';
+                btnIn.disabled = false;
+                btnOut.disabled = true; // Tidak bisa Clock-Out kalau belum Clock-In
+                noticeEl.textContent = 'Anda wajib melakukan Clock-In terlebih dahulu sebelum bisa melakukan Clock-Out.';
+            } else {
+                boxIn.textContent = rec.jamIn || '--:--';
+                badgeIn.textContent = rec.statusIn;
+                badgeIn.className = `text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block ${
+                    rec.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'
+                }`;
+                btnIn.disabled = true;
+
+                if (rec.jamOut) {
+                    boxOut.textContent = rec.jamOut;
+                    badgeOut.textContent = 'Completed';
+                    badgeOut.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200';
+                    durEl.textContent = calcDurationLabel(rec.jamIn, rec.jamOut);
+                    btnOut.disabled = true;
+                    noticeEl.textContent = 'Absensi Clock-In dan Clock-Out Anda untuk hari ini telah lengkap.';
+                } else {
+                    boxOut.textContent = 'Belum Clock-Out';
+                    badgeOut.classList.add('hidden');
+                    durEl.textContent = 'Sedang Bertugas';
+                    btnOut.disabled = false;
+                    noticeEl.textContent = `Tombol Clock-Out dapat digunakan setelah pukul ${workSettings.minClockOut} WIB.`;
+                }
+            }
+
+            tableState.salesHistory.data = res.history || [];
+            document.getElementById('salesHistCountLabel').textContent = `${tableState.salesHistory.data.length} riwayat`;
+            renderTable('salesHistory');
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Gagal Memuat Data', text: err.toString(), confirmButtonColor: '#0f766e' });
+        }).getSalesTodayStatus(currentUser.username);
+    }
+
+    async function openAttendanceModal(type) {
+        if (type === 'OUT') {
+            const nowStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+            const parts = nowStr.split(':').map(Number);
+            const nowSec = (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
+            const [minH, minM] = workSettings.minClockOut.split(':').map(Number);
+            const minOutSec = (minH * 3600) + ((minM || 0) * 60);
+
+            if (nowSec < minOutSec) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Belum Waktunya Clock-Out',
+                    text: `Clock-Out baru dibuka minimal pukul ${workSettings.minClockOut} WIB.`,
+                    confirmButtonColor: '#0f766e'
+                });
+                return;
+            }
+        }
+
+        currentAttendanceType = type;
+        nativePhotoBase64 = null;
+        document.getElementById('nativeCameraInput').value = '';
+        document.getElementById('photoPreview').classList.add('hidden');
+        document.getElementById('cameraStream').classList.remove('hidden');
+        document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+        document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+        document.getElementById('modalTitle').textContent = type === 'IN' ? 'Konfirmasi Clock-In (Masuk)' : 'Konfirmasi Clock-Out (Pulang)';
+        document.getElementById('cameraModal').classList.remove('hidden');
+        document.getElementById('cameraModal').classList.add('flex');
+        updateSubmitButtonState();
+
+        await retryLiveCamera();
+        fetchGpsLocation();
+    }
+
+    function captureAndSubmit() {
+        let finalImageBase64 = nativePhotoBase64;
+        if (!finalImageBase64 && mediaStream) {
+            const video = document.getElementById('cameraStream');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = 480;
+            canvas.height = 640;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            finalImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        }
+
+        closeAttendanceModal();
+        showLoading('Menyimpan foto ke Drive & mencatat koordinat...');
+
+        const payload = {
+            type: currentAttendanceType,
+            username: currentUser.username,
+            nama: currentUser.nama,
+            status: currentUser.status,
+            provinsi: currentUser.provinsi,
+            stasiun: currentUser.stasiun,
+            lat: currentLocation.lat,
+            lng: currentLocation.lng,
+            imageBase64: finalImageBase64
+        };
+
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (res && res.userNotFound) {
+                handleForceLogout(res.message);
+                return;
+            }
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
+                loadSalesDashboard();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Ditolak', text: res.message, confirmButtonColor: '#0f766e' });
+            }
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Gagal Kirim', text: err.toString(), confirmButtonColor: '#0f766e' });
+        }).submitAttendance(payload);
+    }
+</script>

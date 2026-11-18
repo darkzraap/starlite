@@ -1,0 +1,130 @@
+<!-- ================= SALES VIEW ================= -->
+<div id="salesView" class="hidden max-w-lg mx-auto space-y-3.5">
+    <!-- Sales Profile & Rule Banner (Tanpa Avatar) -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 id="salesProfileName" class="text-sm font-bold text-slate-900"></h2>
+                    <span id="salesBadgeStatus"
+                        class="px-2 py-0.5 text-[10px] font-bold rounded bg-teal-50 text-teal-700 border border-teal-200"></span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                    <span id="salesProfStasiun" class="font-semibold text-slate-700"></span> • <span
+                        id="salesProfProv"></span>
+                </p>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase">Waktu Server (WIB)</span>
+                <p id="salesMobileClock" class="text-sm font-mono-code font-bold text-slate-800">--:--:--</p>
+            </div>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200/70 flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Batas Clock-In:</span>
+                <span id="salesRuleIn" class="font-mono-code font-bold text-slate-800">09:00 WIB</span>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200/70 flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Minimal Clock-Out:</span>
+                <span id="salesRuleOut" class="font-mono-code font-bold text-slate-800">18:00 WIB</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Action Card -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status Absensi Hari Ini (Reset Harian Otomatis)</h3>
+            <span id="salesTodayDateLabel"
+                class="text-[11px] font-mono-code font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"></span>
+        </div>
+
+        <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 flex items-center justify-between">
+            <div class="text-left">
+                <span class="text-[10px] font-semibold text-slate-400 block">CLOCK-IN</span>
+                <span id="statusBoxIn" class="font-mono-code text-sm font-bold text-slate-800 mt-0.5 block">Belum Absen</span>
+                <span id="badgeBoxIn" class="text-[10px] font-bold px-1.5 py-0.5 rounded hidden mt-1 inline-block"></span>
+            </div>
+
+            <div class="flex-1 px-3 flex flex-col items-center">
+                <span id="salesWorkDuration" class="text-[10px] font-semibold text-slate-500 mb-1">-</span>
+                <div class="w-full flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                    <div class="flex-1 h-[1.5px] bg-slate-300"></div>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="text-[10px] font-semibold text-slate-400 block">CLOCK-OUT</span>
+                <span id="statusBoxOut" class="font-mono-code text-sm font-bold text-slate-800 mt-0.5 block">Belum Absen</span>
+                <span id="badgeBoxOut" class="text-[10px] font-bold px-1.5 py-0.5 rounded hidden mt-1 inline-block"></span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+            <button id="btnClockIn" onclick="openAttendanceModal('IN')"
+                class="py-2.5 px-3 bg-[#0f766e] hover:bg-[#115e59] disabled:bg-slate-100 disabled:text-slate-400 border border-transparent text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-camera"></i>
+                <span>CLOCK IN</span>
+            </button>
+
+            <button id="btnClockOut" onclick="openAttendanceModal('OUT')"
+                class="py-2.5 px-3 bg-[#1c2434] hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 border border-transparent text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>CLOCK OUT</span>
+            </button>
+        </div>
+        <p id="salesLockNotice" class="text-[10.5px] text-center text-slate-500"></p>
+    </div>
+
+    <!-- Sales Personal History Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Riwayat Absensi Anda</h4>
+            <span id="salesHistCountLabel" class="text-[11px] text-slate-400"></span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Tanggal</th>
+                        <th class="tiimi-th">Clock-in & Out</th>
+                        <th class="tiimi-th">Status In</th>
+                        <th class="tiimi-th">Status Out</th>
+                        <th class="tiimi-th">Maps & Foto</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text"
+                                oninput="updateTableFilter('salesHistory', 'tanggal', this.value)"
+                                placeholder="Tanggal..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text"
+                                oninput="updateTableFilter('salesHistory', 'jamIn', this.value)"
+                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select onchange="updateTableFilter('salesHistory', 'statusIn', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="On Time">On Time</option>
+                                <option value="Late">Late</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell">
+                            <select onchange="updateTableFilter('salesHistory', 'statusOut', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_salesHistory"></tbody>
+            </table>
+        </div>
+        <div id="pager_salesHistory"
+            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+        </div>
+    </div>
+</div>

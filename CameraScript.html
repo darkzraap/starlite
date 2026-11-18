@@ -1,0 +1,108 @@
+<script>
+    // ================= CAMERA & GPS GEOLOCATION LOGIC =================
+    async function retryLiveCamera() {
+        stopCameraStream();
+        nativePhotoBase64 = null;
+        document.getElementById('photoPreview').classList.add('hidden');
+        document.getElementById('cameraStream').classList.remove('hidden');
+        document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+        document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Tidak tersedia');
+            }
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+            } catch (e) {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            }
+            const videoEl = document.getElementById('cameraStream');
+            videoEl.srcObject = mediaStream;
+            await videoEl.play();
+            updateSubmitButtonState();
+        } catch (err) {
+            document.getElementById('cameraFallbackOverlay').classList.remove('hidden');
+            document.getElementById('cameraFallbackOverlay').classList.add('flex');
+            updateSubmitButtonState();
+        }
+    }
+
+    function handleNativePhoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.getElementById('cameraCanvas');
+                const maxW = 480;
+                const scale = maxW / img.width;
+                canvas.width = maxW;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                nativePhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                stopCameraStream();
+                document.getElementById('cameraStream').classList.add('hidden');
+                document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+                document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+                const previewEl = document.getElementById('photoPreview');
+                previewEl.src = nativePhotoBase64;
+                previewEl.classList.remove('hidden');
+                updateSubmitButtonState();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function fetchGpsLocation() {
+        const gpsText = document.getElementById('gpsStatusText');
+        gpsText.textContent = 'Mencari koordinat GPS...';
+        gpsText.className = 'font-mono-code text-amber-600';
+        updateSubmitButtonState();
+
+        if (!navigator.geolocation) {
+            gpsText.textContent = 'Browser tidak mendukung GPS.';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                currentLocation.lat = pos.coords.latitude.toFixed(6);
+                currentLocation.lng = pos.coords.longitude.toFixed(6);
+                gpsText.textContent = `${currentLocation.lat}, ${currentLocation.lng}`;
+                gpsText.className = 'font-mono-code text-teal-700 font-bold';
+                updateSubmitButtonState();
+            },
+            err => {
+                gpsText.textContent = 'Izin GPS ditolak. Izinkan Location di ikon Gembok URL Chrome.';
+                gpsText.className = 'font-mono-code text-rose-600 text-[10.5px]';
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    }
+
+    function updateSubmitButtonState() {
+        const hasGps = !!(currentLocation.lat && currentLocation.lng);
+        const hasCam = !!(mediaStream || nativePhotoBase64);
+        const btn = document.getElementById('btnSubmitCapture');
+        if (btn) btn.disabled = !(hasGps && hasCam);
+    }
+
+    function stopCameraStream() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(t => t.stop());
+            mediaStream = null;
+        }
+    }
+
+    function closeAttendanceModal() {
+        stopCameraStream();
+        document.getElementById('cameraModal').classList.add('hidden');
+        document.getElementById('cameraModal').classList.remove('flex');
+    }
+</script>

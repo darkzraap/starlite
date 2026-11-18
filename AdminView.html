@@ -1,0 +1,601 @@
+<!-- ================= ADMIN VIEW (COMPACT TIIMI DASHBOARD) ================= -->
+<div id="adminView" class="hidden space-y-3">
+
+    <!-- Mobile Tab Switcher -->
+    <div class="flex md:hidden gap-1 overflow-x-auto pb-1">
+        <button onclick="switchAdminTab('tabMonitoring')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Harian</button>
+        <button onclick="switchAdminTab('tabBelumAbsen')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-rose-600 shrink-0">Belum Absen</button>
+        <button onclick="switchAdminTab('tabSummary')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-amber-600 shrink-0">Rekap Tanggal</button>
+        <button onclick="switchAdminTab('tabAllLogs')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Semua Data</button>
+        <button onclick="switchAdminTab('tabUsers')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Kelola Akun</button>
+        <button onclick="switchAdminTab('tabSettings')"
+            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-teal-700 shrink-0">Jam Kerja</button>
+    </div>
+
+    <!-- TIIMI TOP TITLE & DATE STEPPER BAR -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+            <h1 id="adminPageTitle" class="text-base font-extrabold text-slate-900 tracking-tight">Attendance Harian</h1>
+
+            <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm px-1 py-0.5">
+                <button onclick="stepAdminDate(-1)"
+                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                </button>
+                <input type="date" id="adminDateFilter" onchange="onHeaderDateChange()"
+                    class="px-1.5 py-0.5 text-[11.5px] font-bold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
+                <button onclick="stepAdminDate(1)"
+                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Action Buttons -->
+        <div class="flex items-center gap-2">
+            <button onclick="switchAdminTab('tabSettings')"
+                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-regular fa-clock text-teal-600"></i>
+                <span>In: <strong id="headerBadgeMaxIn">09:00</strong> | Out: <strong id="headerBadgeMinOut">18:00</strong></span>
+            </button>
+            <button onclick="loadAdminData()"
+                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+                <i class="fa-solid fa-rotate text-slate-500"></i>
+                <span>Refresh</span>
+            </button>
+            <button onclick="switchAdminTab('tabUsers')"
+                class="px-2.5 py-1.5 bg-[#0f766e] hover:bg-[#115e59] text-white rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Tambah Sales</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TIIMI COMPACT GROUPED SUMMARY CARDS (Harian Tanggal Terpilih) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <!-- Present Summary -->
+        <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clipboard-check text-teal-600"></i> Present Summary (<span class="lblSelectedDate"></span>)
+                </span>
+            </div>
+            <div class="grid grid-cols-3 divide-x divide-slate-100">
+                <div class="pr-3">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">On Time</p>
+                    <p id="kpiOnTime" class="text-lg font-extrabold text-teal-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400">≤ <span id="subLabelMaxIn">09:00</span></p>
+                </div>
+                <div class="px-3">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Late Clock-In</p>
+                    <p id="kpiLate" class="text-lg font-extrabold text-amber-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400">> <span id="subLabelLateIn">09:00</span></p>
+                </div>
+                <div class="pl-3">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Lengkap (In & Out)</p>
+                    <p id="kpiClockedOut" class="text-lg font-extrabold text-slate-900 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400">Sudah Clock-Out</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Not Present Summary -->
+        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-xmark text-rose-600"></i> Not Present / Incomplete
+                </span>
+                <button onclick="switchAdminTab('tabBelumAbsen')"
+                    class="text-[10px] text-teal-600 font-bold hover:underline">Cek Daftar</button>
+            </div>
+            <div class="grid grid-cols-2 divide-x divide-slate-100">
+                <div class="pr-3">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-In</p>
+                    <p id="kpiBelumAbsen" class="text-lg font-extrabold text-rose-600 leading-tight">0</p>
+                    <p class="text-[10px] text-rose-500">Belum absen masuk</p>
+                </div>
+                <div class="pl-3">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-Out</p>
+                    <p id="kpiBelumOut" class="text-lg font-extrabold text-indigo-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400">Sudah In, Belum Out</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workforce Ratio -->
+        <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-indigo-600"></i> Rasio Kehadiran Aktif
+                </span>
+            </div>
+            <div class="grid grid-cols-2 divide-x divide-slate-100">
+                <div class="pr-2">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Sales Aktif</p>
+                    <p id="kpiTotalSales" class="text-lg font-extrabold text-slate-900 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400">Terdaftar</p>
+                </div>
+                <div class="pl-2">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Rasio Hadir</p>
+                    <p id="kpiAttendanceRate" class="text-lg font-extrabold text-teal-600 leading-tight">0%</p>
+                    <p class="text-[10px] text-slate-400">Dari total sales</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 1: MONITORING HARIAN ================= -->
+    <div id="tabMonitoring" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Absensi Masuk & Pulang (<span class="lblSelectedDate"></span>)</h3>
+                <span class="text-[10.5px] text-slate-400">• 30 data/halaman</span>
+            </div>
+            <button onclick="resetTableFilters('todayLogs')" class="text-[11px] text-teal-600 hover:underline font-semibold">
+                <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Nama Sales</th>
+                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Provinsi</th>
+                        <th class="tiimi-th">Stasiun</th>
+                        <th class="tiimi-th">Clock-in & Out</th>
+                        <th class="tiimi-th">Status In</th>
+                        <th class="tiimi-th">Status Out</th>
+                        <th class="tiimi-th">Foto</th>
+                        <th class="tiimi-th">Lokasi (Maps)</th>
+                        <th class="tiimi-th text-center">Detail</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_nama"
+                                oninput="updateTableFilter('todayLogs', 'nama', this.value)"
+                                placeholder="Cari nama / user..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_todayLogs_statusSales"
+                                onchange="updateTableFilter('todayLogs', 'statusSales', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Inhouse">Inhouse</option>
+                                <option value="Freelance">Freelance</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_provinsi"
+                                oninput="updateTableFilter('todayLogs', 'provinsi', this.value)"
+                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_stasiun"
+                                oninput="updateTableFilter('todayLogs', 'stasiun', this.value)"
+                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_jamIn"
+                                oninput="updateTableFilter('todayLogs', 'jamIn', this.value)"
+                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_todayLogs_statusIn"
+                                onchange="updateTableFilter('todayLogs', 'statusIn', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="On Time">On Time</option>
+                                <option value="Late">Late</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_todayLogs_statusOut"
+                                onchange="updateTableFilter('todayLogs', 'statusOut', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Completed">Lengkap (Out)</option>
+                                <option value="Belum Clock-Out">Belum Out</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_koordinatIn"
+                                oninput="updateTableFilter('todayLogs', 'koordinatIn', this.value)"
+                                placeholder="Koordinat..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_todayLogs"></tbody>
+            </table>
+        </div>
+        <div id="pager_todayLogs"
+            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        </div>
+    </div>
+
+    <!-- ================= TAB 2: DAFTAR SALES BELUM CLOCK-IN ================= -->
+    <div id="tabBelumAbsen" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Sales Belum Clock-In Pada Tanggal <span class="lblSelectedDate text-rose-600"></span></h3>
+            </div>
+            <button onclick="resetTableFilters('belumAbsen')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Nama Sales</th>
+                        <th class="tiimi-th">Username</th>
+                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Provinsi</th>
+                        <th class="tiimi-th">Stasiun</th>
+                        <th class="tiimi-th">Keterangan Hari Ini</th>
+                        <th class="tiimi-th text-center">Riwayat Personel</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_nama"
+                                oninput="updateTableFilter('belumAbsen', 'nama', this.value)"
+                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_username"
+                                oninput="updateTableFilter('belumAbsen', 'username', this.value)"
+                                placeholder="Filter username..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_belumAbsen_status"
+                                onchange="updateTableFilter('belumAbsen', 'status', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Inhouse">Inhouse</option>
+                                <option value="Freelance">Freelance</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_provinsi"
+                                oninput="updateTableFilter('belumAbsen', 'provinsi', this.value)"
+                                placeholder="Filter provinsi..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_stasiun"
+                                oninput="updateTableFilter('belumAbsen', 'stasiun', this.value)"
+                                placeholder="Filter stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_belumAbsen"></tbody>
+            </table>
+        </div>
+        <div id="pager_belumAbsen" class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]"></div>
+    </div>
+
+    <!-- ================= TAB 3: REKAP AKUMULASI KEHADIRAN PER TANGGAL ================= -->
+    <div id="tabSummary" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+            <div>
+                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-800">Database Akumulasi Kehadiran Per Tanggal / Periode</h3>
+                <p class="text-[10.5px] text-slate-500">Pilih tanggal awal & akhir untuk melihat akumulasi Belum Clock-In, On Time, Late, Belum Clock-Out, dan Lengkap (In+Out).</p>
+            </div>
+
+            <!-- Filter Rentang Tanggal Akumulasi -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[10.5px] font-semibold text-slate-600">Periode:</span>
+                <input type="date" id="sumStartDate" onchange="recalculateSummaryByDateRange()"
+                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                <span class="text-slate-400">s/d</span>
+                <input type="date" id="sumEndDate" onchange="recalculateSummaryByDateRange()"
+                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                <button onclick="setSummaryRangeAllTime()"
+                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10.5px] font-semibold transition">
+                    Semua Tanggal
+                </button>
+                <button onclick="resetTableFilters('summary')"
+                    class="px-2 py-1 text-teal-600 hover:underline text-[10.5px] font-semibold">
+                    Reset Filter
+                </button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Nama Sales</th>
+                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Provinsi</th>
+                        <th class="tiimi-th">Stasiun</th>
+                        <th class="tiimi-th text-center">Belum Clock-In</th>
+                        <th class="tiimi-th text-center">Total Hadir (In)</th>
+                        <th class="tiimi-th text-center">On Time</th>
+                        <th class="tiimi-th text-center">Late</th>
+                        <th class="tiimi-th text-center">Belum Clock-Out</th>
+                        <th class="tiimi-th text-center">Lengkap (In & Out)</th>
+                        <th class="tiimi-th text-center">Detail</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_nama"
+                                oninput="updateTableFilter('summary', 'nama', this.value)"
+                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_summary_status"
+                                onchange="updateTableFilter('summary', 'status', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Inhouse">Inhouse</option>
+                                <option value="Freelance">Freelance</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_provinsi"
+                                oninput="updateTableFilter('summary', 'provinsi', this.value)"
+                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_stasiun"
+                                oninput="updateTableFilter('summary', 'stasiun', this.value)"
+                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalBelumIn"
+                                oninput="updateTableFilter('summary', 'totalBelumIn', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalHadir"
+                                oninput="updateTableFilter('summary', 'totalHadir', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalOnTime"
+                                oninput="updateTableFilter('summary', 'totalOnTime', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalLate"
+                                oninput="updateTableFilter('summary', 'totalLate', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalBelumOut"
+                                oninput="updateTableFilter('summary', 'totalBelumOut', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalLengkap"
+                                oninput="updateTableFilter('summary', 'totalLengkap', this.value)"
+                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_summary"></tbody>
+            </table>
+        </div>
+        <div id="pager_summary"
+            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        </div>
+    </div>
+
+    <!-- ================= TAB 4: SEMUA DATABASE ABSENSI ================= -->
+    <div id="tabAllLogs" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Seluruh Riwayat Database Absensi (All Records)</h3>
+            <button onclick="resetTableFilters('allLogs')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter Kolom</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Tanggal</th>
+                        <th class="tiimi-th">Nama Sales</th>
+                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Provinsi</th>
+                        <th class="tiimi-th">Stasiun</th>
+                        <th class="tiimi-th">Clock-in & Out</th>
+                        <th class="tiimi-th">Status In</th>
+                        <th class="tiimi-th">Status Out</th>
+                        <th class="tiimi-th">Foto</th>
+                        <th class="tiimi-th">Lokasi (Maps)</th>
+                        <th class="tiimi-th text-center">Detail</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_tanggal"
+                                oninput="updateTableFilter('allLogs', 'tanggal', this.value)"
+                                placeholder="YYYY-MM-DD" class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_nama"
+                                oninput="updateTableFilter('allLogs', 'nama', this.value)"
+                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_allLogs_statusSales"
+                                onchange="updateTableFilter('allLogs', 'statusSales', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Inhouse">Inhouse</option>
+                                <option value="Freelance">Freelance</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_provinsi"
+                                oninput="updateTableFilter('allLogs', 'provinsi', this.value)"
+                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_stasiun"
+                                oninput="updateTableFilter('allLogs', 'stasiun', this.value)"
+                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_jamIn"
+                                oninput="updateTableFilter('allLogs', 'jamIn', this.value)"
+                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_allLogs_statusIn"
+                                onchange="updateTableFilter('allLogs', 'statusIn', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="On Time">On Time</option>
+                                <option value="Late">Late</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_allLogs_statusOut"
+                                onchange="updateTableFilter('allLogs', 'statusOut', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Completed">Lengkap (Out)</option>
+                                <option value="Belum Clock-Out">Belum Out</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_koordinatIn"
+                                oninput="updateTableFilter('allLogs', 'koordinatIn', this.value)"
+                                placeholder="Koordinat..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_allLogs"></tbody>
+            </table>
+        </div>
+        <div id="pager_allLogs"
+            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        </div>
+    </div>
+
+    <!-- ================= TAB 5: KELOLA AKUN SALES (CRUD + TOMBOL DETAIL + CASCADE DELETE) ================= -->
+    <div id="tabUsers" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm h-fit space-y-3">
+            <h3 id="formUserTitle" class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2">Tambah User / Sales Baru</h3>
+            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-2.5 text-[11.5px]">
+                <input type="hidden" id="usrId">
+                <div>
+                    <label class="text-slate-600 font-semibold block mb-0.5">Nama Lengkap Sales</label>
+                    <input type="text" id="usrNama" required placeholder="Contoh: Bagus Fikri"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-slate-600 font-semibold block mb-0.5">Username Login</label>
+                        <input type="text" id="usrUsername" required placeholder="bagus01"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-slate-600 font-semibold block mb-0.5">Password</label>
+                        <input type="text" id="usrPassword" required placeholder="Min. 4 karakter"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-slate-600 font-semibold block mb-0.5">Role Sistem</label>
+                        <select id="usrRole"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                            <option value="Sales">Sales</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-slate-600 font-semibold block mb-0.5">Status Kontrak</label>
+                        <select id="usrStatus"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                            <option value="Inhouse">Inhouse</option>
+                            <option value="Freelance">Freelance</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-slate-600 font-semibold block mb-0.5">Provinsi</label>
+                    <input type="text" id="usrProvinsi" required placeholder="Contoh: Jawa Barat"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-600 font-semibold block mb-0.5">Stasiun / Titik Penugasan</label>
+                    <input type="text" id="usrStasiun" required placeholder="Contoh: Stasiun Bandung"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                </div>
+                <div class="flex gap-2 pt-1.5">
+                    <button type="submit"
+                        class="flex-1 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold rounded-lg transition">
+                        <i class="fa-solid fa-check mr-1"></i> Simpan Akun
+                    </button>
+                    <button type="button" onclick="resetUserForm()"
+                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Database Akun Sales & Admin</h3>
+                <button onclick="resetTableFilters('users')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="tiimi-th">Nama Personel</th>
+                            <th class="tiimi-th">Username & Pass</th>
+                            <th class="tiimi-th">Role</th>
+                            <th class="tiimi-th">Status</th>
+                            <th class="tiimi-th">Provinsi</th>
+                            <th class="tiimi-th">Stasiun</th>
+                            <th class="tiimi-th text-center">Detail & Aksi</th>
+                        </tr>
+                        <tr>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_nama"
+                                    oninput="updateTableFilter('users', 'nama', this.value)"
+                                    placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_username"
+                                    oninput="updateTableFilter('users', 'username', this.value)"
+                                    placeholder="Filter user..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell">
+                                <select id="flt_users_role"
+                                    onchange="updateTableFilter('users', 'role', this.value)"
+                                    class="tiimi-filter-input">
+                                    <option value="">Semua</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </th>
+                            <th class="tiimi-filter-cell">
+                                <select id="flt_users_status"
+                                    onchange="updateTableFilter('users', 'status', this.value)"
+                                    class="tiimi-filter-input">
+                                    <option value="">Semua</option>
+                                    <option value="Inhouse">Inhouse</option>
+                                    <option value="Freelance">Freelance</option>
+                                </select>
+                            </th>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_provinsi"
+                                    oninput="updateTableFilter('users', 'provinsi', this.value)"
+                                    placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_stasiun"
+                                    oninput="updateTableFilter('users', 'stasiun', this.value)"
+                                    placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_users"></tbody>
+                </table>
+            </div>
+            <div id="pager_users"
+                class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 6: PENGATURAN JAM KERJA DINAMIS ================= -->
+    <div id="tabSettings" class="hidden max-w-lg mx-auto">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Pengaturan Batas Jam Absensi</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Ubah batas jam keterlambatan Clock-In dan jam minimal Clock-Out.</p>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">Admin Only</span>
+            </div>
+
+            <form onsubmit="handleSaveSettings(event)" class="space-y-3.5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Batas Jam Clock-In (On Time)</label>
+                        <input type="time" id="setMaxClockIn" required
+                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
+                        <p class="text-[10.5px] text-slate-500">Lewat dari jam ini otomatis berstatus <strong class="text-amber-600">Late</strong>.</p>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Minimal Jam Clock-Out</label>
+                        <input type="time" id="setMinClockOut" required
+                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
+                        <p class="text-[10.5px] text-slate-500">Sales wajib Clock-In dulu & baru bisa Clock-Out minimal jam ini.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-1">
+                    <button type="submit"
+                        class="px-4 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Simpan Pengaturan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>

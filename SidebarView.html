@@ -1,0 +1,36 @@
+<!-- LEFT SLIM ICON SIDEBAR (ADMIN ONLY - w-11) -->
+<aside id="adminLeftSidebar"
+    class="hidden sm:flex flex-col items-center py-3 w-11 bg-white border-r border-slate-200 shrink-0 justify-between">
+    <div class="flex flex-col items-center gap-2">
+        <button onclick="switchAdminTab('tabMonitoring')" id="sideBtn_tabMonitoring"
+            title="Attendance Harian"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-teal-700 bg-teal-50 transition">
+            <i class="fa-solid fa-calendar-check text-xs"></i>
+        </button>
+        <button onclick="switchAdminTab('tabBelumAbsen')" id="sideBtn_tabBelumAbsen" title="Belum Clock-In"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-user-clock text-xs"></i>
+        </button>
+        <button onclick="switchAdminTab('tabSummary')" id="sideBtn_tabSummary"
+            title="Rekap & Akumulasi Per Tanggal"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-chart-column text-xs"></i>
+        </button>
+        <button onclick="switchAdminTab('tabAllLogs')" id="sideBtn_tabAllLogs"
+            title="Semua Database Absensi"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-table-list text-xs"></i>
+        </button>
+        <button onclick="switchAdminTab('tabUsers')" id="sideBtn_tabUsers" title="Kelola Akun Sales"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-users text-xs"></i>
+        </button>
+    </div>
+    <div class="flex flex-col items-center gap-2">
+        <button onclick="switchAdminTab('tabSettings')" id="sideBtn_tabSettings"
+            title="Pengaturan Jam Kerja"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-sliders text-xs"></i>
+        </button>
+    </div>
+</aside>

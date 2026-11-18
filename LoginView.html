@@ -1,0 +1,61 @@
+<!-- ================= LOGIN VIEW ================= -->
+<div id="loginView" class="min-h-screen flex items-center justify-center p-4 bg-[#1c2434]">
+    <div class="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="bg-[#243046] px-6 py-4 flex items-center gap-3 border-b border-slate-700/60">
+            <div
+                class="w-9 h-9 rounded-lg bg-white/10 p-1 flex items-center justify-center overflow-hidden border border-white/15 shrink-0">
+                <img id="appLogoLogin" src="" alt="Logo" class="w-full h-full object-contain hidden"
+                    onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');">
+                <span class="text-amber-400 font-extrabold text-sm">SL</span>
+            </div>
+            <div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-white font-extrabold text-base tracking-tight">starlite</span>
+                    <span class="text-slate-400 text-[11px] font-medium">| Time Management</span>
+                </div>
+                <p class="text-[11px] text-slate-300">Sistem Absensi & Monitoring Sales</p>
+            </div>
+        </div>
+
+        <!-- Form Login Standar untuk memicu Autofill & Simpan Sandi di Browser Chrome -->
+        <form id="loginForm" method="post" action="javascript:void(0);" autocomplete="on" onsubmit="handleLogin(event)" class="p-6 space-y-4">
+            <div>
+                <label for="loginUsername" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Username</label>
+                <div class="relative">
+                    <i class="fa-regular fa-user absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="loginUsername" name="username" required placeholder="Masukkan username"
+                        autocomplete="username" autocapitalize="none" spellcheck="false"
+                        class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-teal-600">
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label for="loginPassword" class="block text-[11px] font-bold text-slate-600 uppercase">Password</label>
+                    <button type="button" onclick="togglePasswordVisibility('loginPassword', 'eyeIconLogin')"
+                        class="text-[10px] text-slate-500 hover:text-teal-700 flex items-center gap-1 focus:outline-none">
+                        <i id="eyeIconLogin" class="fa-regular fa-eye"></i>
+                        <span>Lihat</span>
+                    </button>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="password" id="loginPassword" name="password" required placeholder="Masukkan password"
+                        autocomplete="current-password"
+                        class="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-teal-600">
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-600">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" id="rememberMeCheckbox" checked class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                    <span>Ingat sesi saya</span>
+                </label>
+                <span class="text-[10.5px] text-slate-400 italic">Disimpan di browser</span>
+            </div>
+            <button type="submit" id="loginSubmitBtn"
+                class="w-full py-2 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                <span>Masuk Aplikasi</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+        </form>
+    </div>
+</div>

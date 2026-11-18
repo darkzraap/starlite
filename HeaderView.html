@@ -1,0 +1,69 @@
+<!-- TOP DARK HEADER BAR (COMPACT h-11) -->
+<header
+    class="bg-[#1c2434] text-white h-11 px-3 lg:px-5 flex items-center justify-between sticky top-0 z-30 shrink-0 border-b border-slate-800">
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+            <div
+                class="w-6 h-6 rounded bg-amber-400/15 border border-amber-400/30 flex items-center justify-center overflow-hidden p-0.5">
+                <img id="appLogoNav" src="" alt="Logo" class="w-full h-full object-contain hidden"
+                    onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');">
+                <i class="fa-solid fa-bolt text-amber-400 text-[10px]"></i>
+            </div>
+            <span class="font-extrabold text-sm tracking-tight text-white">starlite</span>
+            <span class="text-slate-600 hidden sm:inline">|</span>
+            <span class="text-[11px] font-semibold text-slate-300 hidden sm:inline">Time Management</span>
+        </div>
+
+        <!-- Admin Navigation Pills -->
+        <nav id="adminTopNav" class="hidden md:flex items-center gap-1 ml-2">
+            <button onclick="switchAdminTab('tabMonitoring')" id="navBtn_tabMonitoring"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold bg-[#2c374b] text-white transition">
+                Attendance Harian
+            </button>
+            <button onclick="switchAdminTab('tabBelumAbsen')" id="navBtn_tabBelumAbsen"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                <span>Belum Clock-In</span>
+                <span id="badgeNavBelum"
+                    class="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[10px] font-bold">0</span>
+            </button>
+            <button onclick="switchAdminTab('tabSummary')" id="navBtn_tabSummary"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                <span>Rekap & Akumulasi</span>
+                <span id="badgeNavLate"
+                    class="px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">0</span>
+            </button>
+            <button onclick="switchAdminTab('tabAllLogs')" id="navBtn_tabAllLogs"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
+                Semua Database
+            </button>
+            <button onclick="switchAdminTab('tabUsers')" id="navBtn_tabUsers"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
+                Kelola Akun Sales
+            </button>
+            <button onclick="switchAdminTab('tabSettings')" id="navBtn_tabSettings"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                <i class="fa-regular fa-clock text-[10px] text-amber-400"></i>
+                <span>Jam Kerja</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Right User Info & Clock Bar -->
+    <div class="flex items-center gap-2.5">
+        <div
+            class="hidden sm:flex items-center gap-1.5 bg-[#252f42] px-2.5 py-1 rounded border border-slate-700/70">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="liveClock" class="font-mono-code text-[11px] text-slate-200">--:--:-- WIB</span>
+        </div>
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-700">
+            <div class="text-right leading-tight">
+                <p id="navUserName" class="text-[11px] font-bold text-white"></p>
+                <p id="navUserSub" class="text-[9.5px] text-slate-400"></p>
+            </div>
+            <button onclick="handleLogout()" title="Keluar / Logout"
+                class="p-1.5 rounded bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition text-xs">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </div>
+</header>

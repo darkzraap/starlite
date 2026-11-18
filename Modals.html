@@ -1,0 +1,162 @@
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay"
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 hidden items-center justify-center">
+    <div class="bg-white border border-slate-200 rounded-lg px-4 py-3 shadow-lg flex items-center gap-2.5">
+        <div class="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+        <span id="loadingText" class="text-xs font-semibold text-slate-700">Memuat data...</span>
+    </div>
+</div>
+
+<!-- ================= MODAL DETAIL RIWAYAT PERSONEL (ADMIN) ================= -->
+<div id="userDetailModal"
+    class="fixed inset-0 bg-slate-900/70 backdrop-blur-[1px] z-40 hidden items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white w-full max-w-4xl rounded-xl border border-slate-200 shadow-2xl overflow-hidden my-auto">
+        <div class="bg-[#1c2434] text-white px-5 py-3.5 flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 id="detailModalName" class="font-bold text-sm text-white">Nama Sales</h3>
+                    <span id="detailModalBadge"
+                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-400/30"></span>
+                </div>
+                <p id="detailModalSub" class="text-[11px] text-slate-300 mt-0.5"></p>
+            </div>
+            <button onclick="closeUserDetailModal()"
+                class="w-7 h-7 rounded-lg bg-white/10 hover:bg-rose-600 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Ringkasan Statistik Orang Tersebut -->
+        <div
+            class="grid grid-cols-4 divide-x divide-slate-200 bg-slate-50 border-b border-slate-200 text-center py-2.5">
+            <div>
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Hadir</span>
+                <span id="detStatHadir" class="text-sm font-extrabold text-slate-900">0</span>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">On Time</span>
+                <span id="detStatOnTime" class="text-sm font-extrabold text-teal-600">0</span>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Terlambat (Late)</span>
+                <span id="detStatLate" class="text-sm font-extrabold text-amber-600">0</span>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Lengkap Clock-Out</span>
+                <span id="detStatOut" class="text-sm font-extrabold text-indigo-600">0</span>
+            </div>
+        </div>
+
+        <!-- Tabel Semua Tanggal Clock-In, Clock-Out, Maps & Foto Milik Orang Tersebut -->
+        <div class="max-h-[60vh] overflow-y-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="sticky top-0 z-10">
+                    <tr>
+                        <th class="tiimi-th">Tanggal</th>
+                        <th class="tiimi-th">Jam Clock-In</th>
+                        <th class="tiimi-th">Status In</th>
+                        <th class="tiimi-th">Maps & Foto In</th>
+                        <th class="tiimi-th">Jam Clock-Out</th>
+                        <th class="tiimi-th">Status Out</th>
+                        <th class="tiimi-th">Maps & Foto Out</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_tanggal"
+                                oninput="updateTableFilter('userDetail', 'tanggal', this.value)"
+                                placeholder="Cari tanggal..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_jamIn"
+                                oninput="updateTableFilter('userDetail', 'jamIn', this.value)"
+                                placeholder="Jam In..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_userDetail_statusIn"
+                                onchange="updateTableFilter('userDetail', 'statusIn', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="On Time">On Time</option>
+                                <option value="Late">Late</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_jamOut"
+                                oninput="updateTableFilter('userDetail', 'jamOut', this.value)"
+                                placeholder="Jam Out..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_userDetail_statusOut"
+                                onchange="updateTableFilter('userDetail', 'statusOut', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Completed">Lengkap</option>
+                                <option value="Belum Clock-Out">Belum Out</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_userDetail"></tbody>
+            </table>
+        </div>
+        <div id="pager_userDetail"
+            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+        </div>
+    </div>
+</div>
+
+<!-- ================= MODAL KAMERA & GPS SALES ================= -->
+<div id="cameraModal"
+    class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-40 hidden items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white w-full max-w-sm rounded-xl p-4 space-y-3 border border-slate-200 shadow-2xl my-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 id="modalTitle" class="font-bold text-slate-900 text-xs">Verifikasi Kamera & Lokasi</h3>
+            <button onclick="closeAttendanceModal()"
+                class="w-6 h-6 rounded bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div
+            class="relative bg-slate-950 rounded-lg overflow-hidden aspect-[3/4] max-h-64 mx-auto flex flex-col items-center justify-center border border-slate-200">
+            <video id="cameraStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            <img id="photoPreview" src="" class="hidden w-full h-full object-cover" alt="Preview">
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+
+            <div id="cameraFallbackOverlay"
+                class="hidden absolute inset-0 bg-slate-900/95 p-4 flex-col items-center justify-center text-center space-y-2.5">
+                <i class="fa-solid fa-camera text-xl text-amber-400"></i>
+                <p class="text-[11px] text-white font-semibold">Izin Live Kamera Tertahan oleh Iframe Browser</p>
+                <label for="nativeCameraInput"
+                    class="cursor-pointer px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold rounded-lg shadow inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-camera"></i> Buka Kamera Perangkat
+                </label>
+            </div>
+        </div>
+
+        <input type="file" id="nativeCameraInput" accept="image/*" capture="user"
+            onchange="handleNativePhoto(event)" class="hidden">
+
+        <div class="flex items-center justify-between text-[11px]">
+            <button type="button" onclick="retryLiveCamera()"
+                class="text-teal-700 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-video"></i> Muat Ulang Kamera
+            </button>
+            <label for="nativeCameraInput"
+                class="cursor-pointer text-slate-600 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-mobile-screen"></i> Kamera Sistem HP
+            </label>
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-0.5">
+            <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-semibold"><i
+                        class="fa-solid fa-location-crosshairs text-teal-600 mr-1"></i> Koordinat GPS:</span>
+                <button type="button" onclick="fetchGpsLocation()"
+                    class="text-teal-700 font-semibold hover:underline"><i class="fa-solid fa-rotate"></i> Refresh GPS</button>
+            </div>
+            <p id="gpsStatusText" class="font-mono-code text-amber-600 font-medium">Mencari titik koordinat...</p>
+        </div>
+
+        <button id="btnSubmitCapture" onclick="captureAndSubmit()" disabled
+            class="w-full py-2.5 bg-[#0f766e] hover:bg-[#115e59] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Ambil Foto & Kirim Absensi
+        </button>
+    </div>
+</div>

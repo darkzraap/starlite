@@ -1,0 +1,2233 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Starlite Time Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            margin: 0;
+            font-size: 12px;
+            /* Ukuran pas untuk 100% Zoom Monitor Desktop */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        video {
+            transform: scaleX(-1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Compact Table Styling (Pas di 100% Chrome) */
+        .tiimi-th {
+            padding: 7px 10px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #475569;
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .tiimi-filter-cell {
+            padding: 4px 8px;
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tiimi-filter-input {
+            width: 100%;
+            padding: 3px 6px;
+            font-size: 10.5px;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            color: #1e293b;
+            outline: none;
+        }
+
+        .tiimi-filter-input:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.15);
+        }
+
+        .tiimi-td {
+            padding: 7px 10px;
+            font-size: 11.5px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .tiimi-row:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- LOADING OVERLAY -->
+    <div id="loadingOverlay"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 hidden items-center justify-center">
+        <div class="bg-white border border-slate-200 rounded-lg px-4 py-3 shadow-lg flex items-center gap-2.5">
+            <div class="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <span id="loadingText" class="text-xs font-semibold text-slate-700">Memuat data...</span>
+        </div>
+    </div>
+
+    <!-- ================= LOGIN VIEW ================= -->
+    <div id="loginView" class="min-h-screen flex items-center justify-center p-4 bg-[#1c2434]">
+        <div class="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
+            <div class="bg-[#243046] px-6 py-4 flex items-center gap-3 border-b border-slate-700/60">
+                <div
+                    class="w-9 h-9 rounded-lg bg-white/10 p-1 flex items-center justify-center overflow-hidden border border-white/15 shrink-0">
+                    <img id="appLogoLogin" src="" alt="Logo" class="w-full h-full object-contain hidden"
+                        onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');">
+                    <span class="text-amber-400 font-extrabold text-sm">SL</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-white font-extrabold text-base tracking-tight">starlite</span>
+                        <span class="text-slate-400 text-[11px] font-medium">| Time Management</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">Sistem Absensi & Monitoring Sales</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Username</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-user absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="loginUsername" required placeholder="Masukkan username"
+                            class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="password" id="loginPassword" required placeholder="Masukkan password"
+                            class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-teal-600">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full py-2 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                    <span>Masuk Aplikasi</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APPLICATION SHELL (COMPACT TIIMI) ================= -->
+    <div id="appShell" class="hidden min-h-screen flex flex-col">
+
+        <!-- TOP DARK HEADER BAR (COMPACT h-11) -->
+        <header
+            class="bg-[#1c2434] text-white h-11 px-3 lg:px-5 flex items-center justify-between sticky top-0 z-30 shrink-0 border-b border-slate-800">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-6 h-6 rounded bg-amber-400/15 border border-amber-400/30 flex items-center justify-center overflow-hidden p-0.5">
+                        <img id="appLogoNav" src="" alt="Logo" class="w-full h-full object-contain hidden"
+                            onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');">
+                        <i class="fa-solid fa-bolt text-amber-400 text-[10px]"></i>
+                    </div>
+                    <span class="font-extrabold text-sm tracking-tight text-white">starlite</span>
+                    <span class="text-slate-600 hidden sm:inline">|</span>
+                    <span class="text-[11px] font-semibold text-slate-300 hidden sm:inline">Time Management</span>
+                </div>
+
+                <!-- Admin Navigation Pills -->
+                <nav id="adminTopNav" class="hidden md:flex items-center gap-1 ml-2">
+                    <button onclick="switchAdminTab('tabMonitoring')" id="navBtn_tabMonitoring"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold bg-[#2c374b] text-white transition">
+                        Attendance Harian
+                    </button>
+                    <button onclick="switchAdminTab('tabBelumAbsen')" id="navBtn_tabBelumAbsen"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                        <span>Belum Clock-In</span>
+                        <span id="badgeNavBelum"
+                            class="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[10px] font-bold">0</span>
+                    </button>
+                    <button onclick="switchAdminTab('tabSummary')" id="navBtn_tabSummary"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                        <span>Rekap & Akumulasi</span>
+                        <span id="badgeNavLate"
+                            class="px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">0</span>
+                    </button>
+                    <button onclick="switchAdminTab('tabAllLogs')" id="navBtn_tabAllLogs"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
+                        Semua Database
+                    </button>
+                    <button onclick="switchAdminTab('tabUsers')" id="navBtn_tabUsers"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
+                        Kelola Akun Sales
+                    </button>
+                    <button onclick="switchAdminTab('tabSettings')" id="navBtn_tabSettings"
+                        class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                        <i class="fa-regular fa-clock text-[10px] text-amber-400"></i>
+                        <span>Jam Kerja</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Right User Info (Tanpa Badge Avatar) & Clock Bar -->
+            <div class="flex items-center gap-2.5">
+                <div
+                    class="hidden sm:flex items-center gap-1.5 bg-[#252f42] px-2.5 py-1 rounded border border-slate-700/70">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="liveClock" class="font-mono-code text-[11px] text-slate-200">--:--:-- WIB</span>
+                </div>
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-700">
+                    <div class="text-right leading-tight">
+                        <p id="navUserName" class="text-[11px] font-bold text-white"></p>
+                        <p id="navUserSub" class="text-[9.5px] text-slate-400"></p>
+                    </div>
+                    <button onclick="handleLogout()" title="Keluar / Logout"
+                        class="p-1.5 rounded bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition text-xs">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- BODY LAYOUT -->
+        <div class="flex-1 flex">
+
+            <!-- LEFT SLIM ICON SIDEBAR (ADMIN ONLY - w-11) -->
+            <aside id="adminLeftSidebar"
+                class="hidden sm:flex flex-col items-center py-3 w-11 bg-white border-r border-slate-200 shrink-0 justify-between">
+                <div class="flex flex-col items-center gap-2">
+                    <button onclick="switchAdminTab('tabMonitoring')" id="sideBtn_tabMonitoring"
+                        title="Attendance Harian"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-teal-700 bg-teal-50 transition">
+                        <i class="fa-solid fa-calendar-check text-xs"></i>
+                    </button>
+                    <button onclick="switchAdminTab('tabBelumAbsen')" id="sideBtn_tabBelumAbsen" title="Belum Clock-In"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-user-clock text-xs"></i>
+                    </button>
+                    <button onclick="switchAdminTab('tabSummary')" id="sideBtn_tabSummary"
+                        title="Rekap & Akumulasi Per Tanggal"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-chart-column text-xs"></i>
+                    </button>
+                    <button onclick="switchAdminTab('tabAllLogs')" id="sideBtn_tabAllLogs"
+                        title="Semua Database Absensi"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-table-list text-xs"></i>
+                    </button>
+                    <button onclick="switchAdminTab('tabUsers')" id="sideBtn_tabUsers" title="Kelola Akun Sales"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-users text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <button onclick="switchAdminTab('tabSettings')" id="sideBtn_tabSettings"
+                        title="Pengaturan Jam Kerja"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-sliders text-xs"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN WORKSPACE AREA (COMPACT PADDING) -->
+            <main class="flex-1 min-w-0 p-3 lg:p-4 max-w-[1600px] mx-auto w-full">
+
+                <!-- ================= SALES VIEW ================= -->
+                <div id="salesView" class="hidden max-w-lg mx-auto space-y-3.5">
+                    <!-- Sales Profile & Rule Banner (Tanpa Avatar) -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 id="salesProfileName" class="text-sm font-bold text-slate-900"></h2>
+                                    <span id="salesBadgeStatus"
+                                        class="px-2 py-0.5 text-[10px] font-bold rounded bg-teal-50 text-teal-700 border border-teal-200"></span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    <span id="salesProfStasiun" class="font-semibold text-slate-700"></span> • <span
+                                        id="salesProfProv"></span>
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-semibold text-slate-400 uppercase">Waktu Server
+                                    (WIB)</span>
+                                <p id="salesMobileClock" class="text-sm font-mono-code font-bold text-slate-800">
+                                    --:--:--</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+                            <div
+                                class="bg-slate-50 rounded-lg p-2 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-500 font-medium">Batas Clock-In:</span>
+                                <span id="salesRuleIn" class="font-mono-code font-bold text-slate-800">09:00 WIB</span>
+                            </div>
+                            <div
+                                class="bg-slate-50 rounded-lg p-2 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-500 font-medium">Minimal Clock-Out:</span>
+                                <span id="salesRuleOut" class="font-mono-code font-bold text-slate-800">18:00 WIB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Action Card -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status Absensi
+                                Hari Ini (Reset Harian Otomatis)</h3>
+                            <span id="salesTodayDateLabel"
+                                class="text-[11px] font-mono-code font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"></span>
+                        </div>
+
+                        <div
+                            class="bg-slate-50 rounded-lg p-3 border border-slate-200 flex items-center justify-between">
+                            <div class="text-left">
+                                <span class="text-[10px] font-semibold text-slate-400 block">CLOCK-IN</span>
+                                <span id="statusBoxIn"
+                                    class="font-mono-code text-sm font-bold text-slate-800 mt-0.5 block">Belum
+                                    Absen</span>
+                                <span id="badgeBoxIn"
+                                    class="text-[10px] font-bold px-1.5 py-0.5 rounded hidden mt-1 inline-block"></span>
+                            </div>
+
+                            <div class="flex-1 px-3 flex flex-col items-center">
+                                <span id="salesWorkDuration"
+                                    class="text-[10px] font-semibold text-slate-500 mb-1">-</span>
+                                <div class="w-full flex items-center">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                    <div class="flex-1 h-[1.5px] bg-slate-300"></div>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                </div>
+                            </div>
+
+                            <div class="text-right">
+                                <span class="text-[10px] font-semibold text-slate-400 block">CLOCK-OUT</span>
+                                <span id="statusBoxOut"
+                                    class="font-mono-code text-sm font-bold text-slate-800 mt-0.5 block">Belum
+                                    Absen</span>
+                                <span id="badgeBoxOut"
+                                    class="text-[10px] font-bold px-1.5 py-0.5 rounded hidden mt-1 inline-block"></span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button id="btnClockIn" onclick="openAttendanceModal('IN')"
+                                class="py-2.5 px-3 bg-[#0f766e] hover:bg-[#115e59] disabled:bg-slate-100 disabled:text-slate-400 border border-transparent text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>CLOCK IN</span>
+                            </button>
+
+                            <button id="btnClockOut" onclick="openAttendanceModal('OUT')"
+                                class="py-2.5 px-3 bg-[#1c2434] hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 border border-transparent text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                <span>CLOCK OUT</span>
+                            </button>
+                        </div>
+                        <p id="salesLockNotice" class="text-[10.5px] text-center text-slate-500"></p>
+                    </div>
+
+                    <!-- Sales Personal History Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Riwayat Absensi
+                                Anda</h4>
+                            <span id="salesHistCountLabel" class="text-[11px] text-slate-400"></span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="tiimi-th">Tanggal</th>
+                                        <th class="tiimi-th">Clock-in & Out</th>
+                                        <th class="tiimi-th">Status In</th>
+                                        <th class="tiimi-th">Status Out</th>
+                                        <th class="tiimi-th">Maps & Foto</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="tiimi-filter-cell"><input type="text"
+                                                oninput="updateTableFilter('salesHistory', 'tanggal', this.value)"
+                                                placeholder="Tanggal..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text"
+                                                oninput="updateTableFilter('salesHistory', 'jamIn', this.value)"
+                                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select onchange="updateTableFilter('salesHistory', 'statusIn', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="On Time">On Time</option>
+                                                <option value="Late">Late</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell">
+                                            <select
+                                                onchange="updateTableFilter('salesHistory', 'statusOut', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Completed">Completed</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_salesHistory"></tbody>
+                            </table>
+                        </div>
+                        <div id="pager_salesHistory"
+                            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= ADMIN VIEW (COMPACT TIIMI DASHBOARD) ================= -->
+                <div id="adminView" class="hidden space-y-3">
+
+                    <!-- Mobile Tab Switcher -->
+                    <div class="flex md:hidden gap-1 overflow-x-auto pb-1">
+                        <button onclick="switchAdminTab('tabMonitoring')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Harian</button>
+                        <button onclick="switchAdminTab('tabBelumAbsen')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-rose-600 shrink-0">Belum
+                            Absen</button>
+                        <button onclick="switchAdminTab('tabSummary')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-amber-600 shrink-0">Rekap
+                            Tanggal</button>
+                        <button onclick="switchAdminTab('tabAllLogs')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Semua
+                            Data</button>
+                        <button onclick="switchAdminTab('tabUsers')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Kelola
+                            Akun</button>
+                        <button onclick="switchAdminTab('tabSettings')"
+                            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-teal-700 shrink-0">Jam
+                            Kerja</button>
+                    </div>
+
+                    <!-- TIIMI TOP TITLE & DATE STEPPER BAR -->
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <h1 id="adminPageTitle" class="text-base font-extrabold text-slate-900 tracking-tight">
+                                Attendance Harian</h1>
+
+                            <div
+                                class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm px-1 py-0.5">
+                                <button onclick="stepAdminDate(-1)"
+                                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
+                                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                                </button>
+                                <input type="date" id="adminDateFilter" onchange="onHeaderDateChange()"
+                                    class="px-1.5 py-0.5 text-[11.5px] font-bold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
+                                <button onclick="stepAdminDate(1)"
+                                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
+                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Right Action Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchAdminTab('tabSettings')"
+                                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock text-teal-600"></i>
+                                <span>In: <strong id="headerBadgeMaxIn">09:00</strong> | Out: <strong
+                                        id="headerBadgeMinOut">18:00</strong></span>
+                            </button>
+                            <button onclick="loadAdminData()"
+                                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+                                <i class="fa-solid fa-rotate text-slate-500"></i>
+                                <span>Refresh</span>
+                            </button>
+                            <button onclick="switchAdminTab('tabUsers')"
+                                class="px-2.5 py-1.5 bg-[#0f766e] hover:bg-[#115e59] text-white rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+                                <i class="fa-solid fa-user-plus"></i>
+                                <span>Tambah Sales</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TIIMI COMPACT GROUPED SUMMARY CARDS (Harian Tanggal Terpilih) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                        <!-- Present Summary -->
+                        <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-clipboard-check text-teal-600"></i> Present Summary (<span
+                                        class="lblSelectedDate"></span>)
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-3 divide-x divide-slate-100">
+                                <div class="pr-3">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">On Time</p>
+                                    <p id="kpiOnTime" class="text-lg font-extrabold text-teal-600 leading-tight">0</p>
+                                    <p class="text-[10px] text-slate-400">≤ <span id="subLabelMaxIn">09:00</span></p>
+                                </div>
+                                <div class="px-3">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Late Clock-In</p>
+                                    <p id="kpiLate" class="text-lg font-extrabold text-amber-600 leading-tight">0</p>
+                                    <p class="text-[10px] text-slate-400">> <span id="subLabelLateIn">09:00</span></p>
+                                </div>
+                                <div class="pl-3">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Lengkap (In & Out)</p>
+                                    <p id="kpiClockedOut" class="text-lg font-extrabold text-slate-900 leading-tight">0
+                                    </p>
+                                    <p class="text-[10px] text-slate-400">Sudah Clock-Out</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Not Present Summary -->
+                        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-xmark text-rose-600"></i> Not Present / Incomplete
+                                </span>
+                                <button onclick="switchAdminTab('tabBelumAbsen')"
+                                    class="text-[10px] text-teal-600 font-bold hover:underline">Cek Daftar</button>
+                            </div>
+                            <div class="grid grid-cols-2 divide-x divide-slate-100">
+                                <div class="pr-3">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-In</p>
+                                    <p id="kpiBelumAbsen" class="text-lg font-extrabold text-rose-600 leading-tight">0
+                                    </p>
+                                    <p class="text-[10px] text-rose-500">Belum absen masuk</p>
+                                </div>
+                                <div class="pl-3">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-Out</p>
+                                    <p id="kpiBelumOut" class="text-lg font-extrabold text-indigo-600 leading-tight">0
+                                    </p>
+                                    <p class="text-[10px] text-slate-400">Sudah In, Belum Out</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Workforce Ratio -->
+                        <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-chart-pie text-indigo-600"></i> Rasio Kehadiran Aktif
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 divide-x divide-slate-100">
+                                <div class="pr-2">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Sales Aktif</p>
+                                    <p id="kpiTotalSales" class="text-lg font-extrabold text-slate-900 leading-tight">0
+                                    </p>
+                                    <p class="text-[10px] text-slate-400">Terdaftar</p>
+                                </div>
+                                <div class="pl-2">
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Rasio Hadir</p>
+                                    <p id="kpiAttendanceRate"
+                                        class="text-lg font-extrabold text-teal-600 leading-tight">0%</p>
+                                    <p class="text-[10px] text-slate-400">Dari total sales</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 1: MONITORING HARIAN ================= -->
+                    <div id="tabMonitoring"
+                        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Absensi
+                                    Masuk & Pulang (<span class="lblSelectedDate"></span>)</h3>
+                                <span class="text-[10.5px] text-slate-400">• 30 data/halaman</span>
+                            </div>
+                            <button onclick="resetTableFilters('todayLogs')"
+                                class="text-[11px] text-teal-600 hover:underline font-semibold">
+                                <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="tiimi-th">Nama Sales</th>
+                                        <th class="tiimi-th">Status</th>
+                                        <th class="tiimi-th">Provinsi</th>
+                                        <th class="tiimi-th">Stasiun</th>
+                                        <th class="tiimi-th">Clock-in & Out</th>
+                                        <th class="tiimi-th">Status In</th>
+                                        <th class="tiimi-th">Status Out</th>
+                                        <th class="tiimi-th">Foto</th>
+                                        <th class="tiimi-th">Lokasi (Maps)</th>
+                                        <th class="tiimi-th text-center">Detail</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_nama"
+                                                oninput="updateTableFilter('todayLogs', 'nama', this.value)"
+                                                placeholder="Cari nama / user..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_todayLogs_statusSales"
+                                                onchange="updateTableFilter('todayLogs', 'statusSales', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Inhouse">Inhouse</option>
+                                                <option value="Freelance">Freelance</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_provinsi"
+                                                oninput="updateTableFilter('todayLogs', 'provinsi', this.value)"
+                                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_stasiun"
+                                                oninput="updateTableFilter('todayLogs', 'stasiun', this.value)"
+                                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_jamIn"
+                                                oninput="updateTableFilter('todayLogs', 'jamIn', this.value)"
+                                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_todayLogs_statusIn"
+                                                onchange="updateTableFilter('todayLogs', 'statusIn', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="On Time">On Time</option>
+                                                <option value="Late">Late</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_todayLogs_statusOut"
+                                                onchange="updateTableFilter('todayLogs', 'statusOut', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Completed">Lengkap (Out)</option>
+                                                <option value="Belum Clock-Out">Belum Out</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_koordinatIn"
+                                                oninput="updateTableFilter('todayLogs', 'koordinatIn', this.value)"
+                                                placeholder="Koordinat..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_todayLogs"></tbody>
+                            </table>
+                        </div>
+                        <div id="pager_todayLogs"
+                            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 2: DAFTAR SALES BELUM CLOCK-IN ================= -->
+                    <div id="tabBelumAbsen"
+                        class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Sales
+                                    Belum Clock-In Pada Tanggal <span class="lblSelectedDate text-rose-600"></span></h3>
+                            </div>
+                            <button onclick="resetTableFilters('belumAbsen')"
+                                class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="tiimi-th">Nama Sales</th>
+                                        <th class="tiimi-th">Username</th>
+                                        <th class="tiimi-th">Status</th>
+                                        <th class="tiimi-th">Provinsi</th>
+                                        <th class="tiimi-th">Stasiun</th>
+                                        <th class="tiimi-th">Keterangan Hari Ini</th>
+                                        <th class="tiimi-th text-center">Riwayat Personel</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_nama"
+                                                oninput="updateTableFilter('belumAbsen', 'nama', this.value)"
+                                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_username"
+                                                oninput="updateTableFilter('belumAbsen', 'username', this.value)"
+                                                placeholder="Filter username..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_belumAbsen_status"
+                                                onchange="updateTableFilter('belumAbsen', 'status', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Inhouse">Inhouse</option>
+                                                <option value="Freelance">Freelance</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_provinsi"
+                                                oninput="updateTableFilter('belumAbsen', 'provinsi', this.value)"
+                                                placeholder="Filter provinsi..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_belumAbsen_stasiun"
+                                                oninput="updateTableFilter('belumAbsen', 'stasiun', this.value)"
+                                                placeholder="Filter stasiun..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"></th>
+                                        <th class="tiimi-filter-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_belumAbsen"></tbody>
+                            </table>
+                        </div>
+                        <div id="pager_belumAbsen"
+                            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 3: REKAP AKUMULASI KEHADIRAN PER TANGGAL ================= -->
+                    <div id="tabSummary"
+                        class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+                            <div>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-800">Database
+                                    Akumulasi Kehadiran Per Tanggal / Periode</h3>
+                                <p class="text-[10.5px] text-slate-500">Pilih tanggal awal & akhir untuk melihat
+                                    akumulasi Belum Clock-In, On Time, Late, Belum Clock-Out, dan Lengkap (In+Out).</p>
+                            </div>
+
+                            <!-- Filter Rentang Tanggal Akumulasi -->
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="text-[10.5px] font-semibold text-slate-600">Periode:</span>
+                                <input type="date" id="sumStartDate" onchange="recalculateSummaryByDateRange()"
+                                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                                <span class="text-slate-400">s/d</span>
+                                <input type="date" id="sumEndDate" onchange="recalculateSummaryByDateRange()"
+                                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                                <button onclick="setSummaryRangeAllTime()"
+                                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10.5px] font-semibold transition">
+                                    Semua Tanggal
+                                </button>
+                                <button onclick="resetTableFilters('summary')"
+                                    class="px-2 py-1 text-teal-600 hover:underline text-[10.5px] font-semibold">
+                                    Reset Filter
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="tiimi-th">Nama Sales</th>
+                                        <th class="tiimi-th">Status</th>
+                                        <th class="tiimi-th">Provinsi</th>
+                                        <th class="tiimi-th">Stasiun</th>
+                                        <th class="tiimi-th text-center">Belum Clock-In</th>
+                                        <th class="tiimi-th text-center">Total Hadir (In)</th>
+                                        <th class="tiimi-th text-center">On Time</th>
+                                        <th class="tiimi-th text-center">Late</th>
+                                        <th class="tiimi-th text-center">Belum Clock-Out</th>
+                                        <th class="tiimi-th text-center">Lengkap (In & Out)</th>
+                                        <th class="tiimi-th text-center">Detail</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_nama"
+                                                oninput="updateTableFilter('summary', 'nama', this.value)"
+                                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_summary_status"
+                                                onchange="updateTableFilter('summary', 'status', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Inhouse">Inhouse</option>
+                                                <option value="Freelance">Freelance</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_provinsi"
+                                                oninput="updateTableFilter('summary', 'provinsi', this.value)"
+                                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_stasiun"
+                                                oninput="updateTableFilter('summary', 'stasiun', this.value)"
+                                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalBelumIn"
+                                                oninput="updateTableFilter('summary', 'totalBelumIn', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalHadir"
+                                                oninput="updateTableFilter('summary', 'totalHadir', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalOnTime"
+                                                oninput="updateTableFilter('summary', 'totalOnTime', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalLate"
+                                                oninput="updateTableFilter('summary', 'totalLate', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalBelumOut"
+                                                oninput="updateTableFilter('summary', 'totalBelumOut', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_summary_totalLengkap"
+                                                oninput="updateTableFilter('summary', 'totalLengkap', this.value)"
+                                                placeholder="Jml..." class="tiimi-filter-input text-center"></th>
+                                        <th class="tiimi-filter-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_summary"></tbody>
+                            </table>
+                        </div>
+                        <div id="pager_summary"
+                            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 4: SEMUA DATABASE ABSENSI ================= -->
+                    <div id="tabAllLogs"
+                        class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div
+                            class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Seluruh Riwayat
+                                Database Absensi (All Records)</h3>
+                            <button onclick="resetTableFilters('allLogs')"
+                                class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter
+                                Kolom</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="tiimi-th">Tanggal</th>
+                                        <th class="tiimi-th">Nama Sales</th>
+                                        <th class="tiimi-th">Status</th>
+                                        <th class="tiimi-th">Provinsi</th>
+                                        <th class="tiimi-th">Stasiun</th>
+                                        <th class="tiimi-th">Clock-in & Out</th>
+                                        <th class="tiimi-th">Status In</th>
+                                        <th class="tiimi-th">Status Out</th>
+                                        <th class="tiimi-th">Foto</th>
+                                        <th class="tiimi-th">Lokasi (Maps)</th>
+                                        <th class="tiimi-th text-center">Detail</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_tanggal"
+                                                oninput="updateTableFilter('allLogs', 'tanggal', this.value)"
+                                                placeholder="YYYY-MM-DD" class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_nama"
+                                                oninput="updateTableFilter('allLogs', 'nama', this.value)"
+                                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_allLogs_statusSales"
+                                                onchange="updateTableFilter('allLogs', 'statusSales', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Inhouse">Inhouse</option>
+                                                <option value="Freelance">Freelance</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_provinsi"
+                                                oninput="updateTableFilter('allLogs', 'provinsi', this.value)"
+                                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_stasiun"
+                                                oninput="updateTableFilter('allLogs', 'stasiun', this.value)"
+                                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_jamIn"
+                                                oninput="updateTableFilter('allLogs', 'jamIn', this.value)"
+                                                placeholder="Jam..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_allLogs_statusIn"
+                                                onchange="updateTableFilter('allLogs', 'statusIn', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="On Time">On Time</option>
+                                                <option value="Late">Late</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell">
+                                            <select id="flt_allLogs_statusOut"
+                                                onchange="updateTableFilter('allLogs', 'statusOut', this.value)"
+                                                class="tiimi-filter-input">
+                                                <option value="">Semua</option>
+                                                <option value="Completed">Lengkap (Out)</option>
+                                                <option value="Belum Clock-Out">Belum Out</option>
+                                            </select>
+                                        </th>
+                                        <th class="tiimi-filter-cell"></th>
+                                        <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_koordinatIn"
+                                                oninput="updateTableFilter('allLogs', 'koordinatIn', this.value)"
+                                                placeholder="Koordinat..." class="tiimi-filter-input"></th>
+                                        <th class="tiimi-filter-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_allLogs"></tbody>
+                            </table>
+                        </div>
+                        <div id="pager_allLogs"
+                            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 5: KELOLA AKUN SALES (CRUD + TOMBOL DETAIL + CASCADE DELETE) ================= -->
+                    <div id="tabUsers" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+                        <div
+                            class="lg:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm h-fit space-y-3">
+                            <h3 id="formUserTitle"
+                                class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2">Tambah User /
+                                Sales Baru</h3>
+                            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-2.5 text-[11.5px]">
+                                <input type="hidden" id="usrId">
+                                <div>
+                                    <label class="text-slate-600 font-semibold block mb-0.5">Nama Lengkap Sales</label>
+                                    <input type="text" id="usrNama" required placeholder="Contoh: Bagus Fikri"
+                                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-slate-600 font-semibold block mb-0.5">Username Login</label>
+                                        <input type="text" id="usrUsername" required placeholder="bagus01"
+                                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="text-slate-600 font-semibold block mb-0.5">Password</label>
+                                        <input type="text" id="usrPassword" required placeholder="Min. 4 karakter"
+                                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-slate-600 font-semibold block mb-0.5">Role Sistem</label>
+                                        <select id="usrRole"
+                                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                                            <option value="Sales">Sales</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-slate-600 font-semibold block mb-0.5">Status Kontrak</label>
+                                        <select id="usrStatus"
+                                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                                            <option value="Inhouse">Inhouse</option>
+                                            <option value="Freelance">Freelance</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-slate-600 font-semibold block mb-0.5">Provinsi</label>
+                                    <input type="text" id="usrProvinsi" required placeholder="Contoh: Jawa Barat"
+                                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-slate-600 font-semibold block mb-0.5">Stasiun / Titik
+                                        Penugasan</label>
+                                    <input type="text" id="usrStasiun" required placeholder="Contoh: Stasiun Bandung"
+                                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                                </div>
+                                <div class="flex gap-2 pt-1.5">
+                                    <button type="submit"
+                                        class="flex-1 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold rounded-lg transition">
+                                        <i class="fa-solid fa-check mr-1"></i> Simpan Akun
+                                    </button>
+                                    <button type="button" onclick="resetUserForm()"
+                                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
+                                        Batal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div
+                            class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                            <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Database Akun
+                                    Sales & Admin</h3>
+                                <button onclick="resetTableFilters('users')"
+                                    class="text-[11px] text-teal-600 hover:underline font-semibold">Reset
+                                    Filter</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th class="tiimi-th">Nama Personel</th>
+                                            <th class="tiimi-th">Username & Pass</th>
+                                            <th class="tiimi-th">Role</th>
+                                            <th class="tiimi-th">Status</th>
+                                            <th class="tiimi-th">Provinsi</th>
+                                            <th class="tiimi-th">Stasiun</th>
+                                            <th class="tiimi-th text-center">Detail & Aksi</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_nama"
+                                                    oninput="updateTableFilter('users', 'nama', this.value)"
+                                                    placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_username"
+                                                    oninput="updateTableFilter('users', 'username', this.value)"
+                                                    placeholder="Filter user..." class="tiimi-filter-input"></th>
+                                            <th class="tiimi-filter-cell">
+                                                <select id="flt_users_role"
+                                                    onchange="updateTableFilter('users', 'role', this.value)"
+                                                    class="tiimi-filter-input">
+                                                    <option value="">Semua</option>
+                                                    <option value="Sales">Sales</option>
+                                                    <option value="Admin">Admin</option>
+                                                </select>
+                                            </th>
+                                            <th class="tiimi-filter-cell">
+                                                <select id="flt_users_status"
+                                                    onchange="updateTableFilter('users', 'status', this.value)"
+                                                    class="tiimi-filter-input">
+                                                    <option value="">Semua</option>
+                                                    <option value="Inhouse">Inhouse</option>
+                                                    <option value="Freelance">Freelance</option>
+                                                </select>
+                                            </th>
+                                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_provinsi"
+                                                    oninput="updateTableFilter('users', 'provinsi', this.value)"
+                                                    placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_stasiun"
+                                                    oninput="updateTableFilter('users', 'stasiun', this.value)"
+                                                    placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                                            <th class="tiimi-filter-cell"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody_users"></tbody>
+                                </table>
+                            </div>
+                            <div id="pager_users"
+                                class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB 6: PENGATURAN JAM KERJA DINAMIS ================= -->
+                    <div id="tabSettings" class="hidden max-w-lg mx-auto">
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+                            <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-900">Pengaturan Batas Jam Absensi</h3>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Ubah batas jam keterlambatan Clock-In
+                                        dan jam minimal Clock-Out.</p>
+                                </div>
+                                <span
+                                    class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">Admin
+                                    Only</span>
+                            </div>
+
+                            <form onsubmit="handleSaveSettings(event)" class="space-y-3.5">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Batas Jam
+                                            Clock-In (On Time)</label>
+                                        <input type="time" id="setMaxClockIn" required
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
+                                        <p class="text-[10.5px] text-slate-500">Lewat dari jam ini otomatis berstatus
+                                            <strong class="text-amber-600">Late</strong>.</p>
+                                    </div>
+
+                                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Minimal Jam
+                                            Clock-Out</label>
+                                        <input type="time" id="setMinClockOut" required
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
+                                        <p class="text-[10.5px] text-slate-500">Sales wajib Clock-In dulu & baru bisa
+                                            Clock-Out minimal jam ini.</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-end pt-1">
+                                    <button type="submit"
+                                        class="px-4 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        <span>Simpan Pengaturan</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DETAIL RIWAYAT PERSONEL (ADMIN) ================= -->
+    <div id="userDetailModal"
+        class="fixed inset-0 bg-slate-900/70 backdrop-blur-[1px] z-40 hidden items-center justify-center p-3 overflow-y-auto">
+        <div class="bg-white w-full max-w-4xl rounded-xl border border-slate-200 shadow-2xl overflow-hidden my-auto">
+            <div class="bg-[#1c2434] text-white px-5 py-3.5 flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 id="detailModalName" class="font-bold text-sm text-white">Nama Sales</h3>
+                        <span id="detailModalBadge"
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-400/30"></span>
+                    </div>
+                    <p id="detailModalSub" class="text-[11px] text-slate-300 mt-0.5"></p>
+                </div>
+                <button onclick="closeUserDetailModal()"
+                    class="w-7 h-7 rounded-lg bg-white/10 hover:bg-rose-600 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Ringkasan Statistik Orang Tersebut -->
+            <div
+                class="grid grid-cols-4 divide-x divide-slate-200 bg-slate-50 border-b border-slate-200 text-center py-2.5">
+                <div>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Hadir</span>
+                    <span id="detStatHadir" class="text-sm font-extrabold text-slate-900">0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase block">On Time</span>
+                    <span id="detStatOnTime" class="text-sm font-extrabold text-teal-600">0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Terlambat (Late)</span>
+                    <span id="detStatLate" class="text-sm font-extrabold text-amber-600">0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Lengkap Clock-Out</span>
+                    <span id="detStatOut" class="text-sm font-extrabold text-indigo-600">0</span>
+                </div>
+            </div>
+
+            <!-- Tabel Semua Tanggal Clock-In, Clock-Out, Maps & Foto Milik Orang Tersebut -->
+            <div class="max-h-[60vh] overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10">
+                        <tr>
+                            <th class="tiimi-th">Tanggal</th>
+                            <th class="tiimi-th">Jam Clock-In</th>
+                            <th class="tiimi-th">Status In</th>
+                            <th class="tiimi-th">Maps & Foto In</th>
+                            <th class="tiimi-th">Jam Clock-Out</th>
+                            <th class="tiimi-th">Status Out</th>
+                            <th class="tiimi-th">Maps & Foto Out</th>
+                        </tr>
+                        <tr>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_tanggal"
+                                    oninput="updateTableFilter('userDetail', 'tanggal', this.value)"
+                                    placeholder="Cari tanggal..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_jamIn"
+                                    oninput="updateTableFilter('userDetail', 'jamIn', this.value)"
+                                    placeholder="Jam In..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell">
+                                <select id="flt_userDetail_statusIn"
+                                    onchange="updateTableFilter('userDetail', 'statusIn', this.value)"
+                                    class="tiimi-filter-input">
+                                    <option value="">Semua</option>
+                                    <option value="On Time">On Time</option>
+                                    <option value="Late">Late</option>
+                                </select>
+                            </th>
+                            <th class="tiimi-filter-cell"></th>
+                            <th class="tiimi-filter-cell"><input type="text" id="flt_userDetail_jamOut"
+                                    oninput="updateTableFilter('userDetail', 'jamOut', this.value)"
+                                    placeholder="Jam Out..." class="tiimi-filter-input"></th>
+                            <th class="tiimi-filter-cell">
+                                <select id="flt_userDetail_statusOut"
+                                    onchange="updateTableFilter('userDetail', 'statusOut', this.value)"
+                                    class="tiimi-filter-input">
+                                    <option value="">Semua</option>
+                                    <option value="Completed">Lengkap</option>
+                                    <option value="Belum Clock-Out">Belum Out</option>
+                                </select>
+                            </th>
+                            <th class="tiimi-filter-cell"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_userDetail"></tbody>
+                </table>
+            </div>
+            <div id="pager_userDetail"
+                class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL KAMERA & GPS SALES ================= -->
+    <div id="cameraModal"
+        class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-40 hidden items-center justify-center p-3 overflow-y-auto">
+        <div class="bg-white w-full max-w-sm rounded-xl p-4 space-y-3 border border-slate-200 shadow-2xl my-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <h3 id="modalTitle" class="font-bold text-slate-900 text-xs">Verifikasi Kamera & Lokasi</h3>
+                <button onclick="closeAttendanceModal()"
+                    class="w-6 h-6 rounded bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div
+                class="relative bg-slate-950 rounded-lg overflow-hidden aspect-[3/4] max-h-64 mx-auto flex flex-col items-center justify-center border border-slate-200">
+                <video id="cameraStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <img id="photoPreview" src="" class="hidden w-full h-full object-cover" alt="Preview">
+                <canvas id="cameraCanvas" class="hidden"></canvas>
+
+                <div id="cameraFallbackOverlay"
+                    class="hidden absolute inset-0 bg-slate-900/95 p-4 flex-col items-center justify-center text-center space-y-2.5">
+                    <i class="fa-solid fa-camera text-xl text-amber-400"></i>
+                    <p class="text-[11px] text-white font-semibold">Izin Live Kamera Tertahan oleh Iframe Browser</p>
+                    <label for="nativeCameraInput"
+                        class="cursor-pointer px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold rounded-lg shadow inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Buka Kamera Perangkat
+                    </label>
+                </div>
+            </div>
+
+            <input type="file" id="nativeCameraInput" accept="image/*" capture="user"
+                onchange="handleNativePhoto(event)" class="hidden">
+
+            <div class="flex items-center justify-between text-[11px]">
+                <button type="button" onclick="retryLiveCamera()"
+                    class="text-teal-700 font-semibold hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-video"></i> Muat Ulang Kamera
+                </button>
+                <label for="nativeCameraInput"
+                    class="cursor-pointer text-slate-600 font-semibold hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-mobile-screen"></i> Kamera Sistem HP
+                </label>
+            </div>
+
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-0.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-semibold"><i
+                            class="fa-solid fa-location-crosshairs text-teal-600 mr-1"></i> Koordinat GPS:</span>
+                    <button type="button" onclick="fetchGpsLocation()"
+                        class="text-teal-700 font-semibold hover:underline"><i class="fa-solid fa-rotate"></i> Refresh
+                        GPS</button>
+                </div>
+                <p id="gpsStatusText" class="font-mono-code text-amber-600 font-medium">Mencari titik koordinat...</p>
+            </div>
+
+            <button id="btnSubmitCapture" onclick="captureAndSubmit()" disabled
+                class="w-full py-2.5 bg-[#0f766e] hover:bg-[#115e59] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Ambil Foto & Kirim Absensi
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SESSION_STORAGE_KEY = 'STARLITE_AUTH_SESSION_V3';
+        const PAGE_SIZE = 30; // 30 data per halaman
+
+        let currentUser = null;
+        let workSettings = { maxClockIn: '09:00', minClockOut: '18:00' };
+        let currentAttendanceType = 'IN';
+        let mediaStream = null;
+        let nativePhotoBase64 = null;
+        let currentLocation = { lat: null, lng: null };
+        let masterSalesOnly = [];
+
+        const tableState = {
+            todayLogs: { data: [], filters: {}, page: 1 },
+            belumAbsen: { data: [], filters: {}, page: 1 },
+            summary: { data: [], filters: {}, page: 1 },
+            allLogs: { data: [], filters: {}, page: 1 },
+            users: { data: [], filters: {}, page: 1 },
+            salesHistory: { data: [], filters: {}, page: 1 },
+            userDetail: { data: [], filters: {}, page: 1 }
+        };
+
+        window.onload = () => {
+            const now = new Date();
+            const offsetMs = now.getTimezoneOffset() * 60000;
+            const wibDate = new Date(now.getTime() + offsetMs + (7 * 3600000));
+            const todayIso = wibDate.toISOString().split('T')[0];
+
+            document.getElementById('adminDateFilter').value = todayIso;
+            document.getElementById('sumStartDate').value = todayIso;
+            document.getElementById('sumEndDate').value = todayIso;
+            document.getElementById('salesTodayDateLabel').textContent = todayIso;
+
+            google.script.run.withSuccessHandler(url => {
+                if (url) {
+                    document.getElementById('appLogoLogin').src = url;
+                    document.getElementById('appLogoNav').src = url;
+                }
+            }).getLogoUrl();
+
+            setInterval(() => {
+                const d = new Date();
+                const tStr = d.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+                const el1 = document.getElementById('liveClock');
+                const el2 = document.getElementById('salesMobileClock');
+                if (el1) el1.textContent = tStr + ' WIB';
+                if (el2) el2.textContent = tStr;
+            }, 1000);
+
+            // Persistent Login Session
+            const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (savedSession) {
+                try {
+                    const parsed = JSON.parse(savedSession);
+                    if (parsed && parsed.username) {
+                        currentUser = parsed;
+                        enterAuthenticatedView();
+                    }
+                } catch (e) {
+                    localStorage.removeItem(SESSION_STORAGE_KEY);
+                }
+            }
+        };
+
+        function showLoading(text = 'Memuat data...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').classList.add('flex');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('loadingOverlay').classList.remove('flex');
+        }
+
+        // ================= AUTHENTICATION =================
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+            showLoading('Memverifikasi akun...');
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (!res.success) {
+                    Swal.fire({ icon: 'error', title: 'Login Gagal', text: res.message, confirmButtonColor: '#0f766e' });
+                    return;
+                }
+                currentUser = res.user;
+                if (res.settings) workSettings = res.settings;
+
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentUser));
+                enterAuthenticatedView();
+            }).loginUser(u, p);
+        }
+
+        function enterAuthenticatedView() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appShell').classList.remove('hidden');
+
+            document.getElementById('navUserName').textContent = currentUser.nama;
+            document.getElementById('navUserSub').textContent = `${currentUser.role} • ${currentUser.stasiun}`;
+
+            const isAdmin = String(currentUser.role).toLowerCase() === 'admin';
+            if (isAdmin) {
+                document.getElementById('adminTopNav').classList.remove('hidden');
+                document.getElementById('adminLeftSidebar').classList.remove('hidden');
+                document.getElementById('salesView').classList.add('hidden');
+                document.getElementById('adminView').classList.remove('hidden');
+                loadAdminData();
+            } else {
+                document.getElementById('adminTopNav').classList.add('hidden');
+                document.getElementById('adminLeftSidebar').classList.add('hidden');
+                document.getElementById('adminView').classList.add('hidden');
+                document.getElementById('salesView').classList.remove('hidden');
+                loadSalesDashboard();
+            }
+        }
+
+        function handleLogout() {
+            stopCameraStream();
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+            currentUser = null;
+            document.getElementById('appShell').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('loginPassword').value = '';
+        }
+
+        // ================= GENERIC FILTER & 30-ROW PAGINATION =================
+        function updateTableFilter(tableKey, colName, val) {
+            tableState[tableKey].filters[colName] = String(val || '').toLowerCase().trim();
+            tableState[tableKey].page = 1;
+            renderTable(tableKey);
+        }
+
+        function resetTableFilters(tableKey) {
+            tableState[tableKey].filters = {};
+            tableState[tableKey].page = 1;
+            const inputs = document.querySelectorAll(`[id^="flt_${tableKey}_"]`);
+            inputs.forEach(el => { el.value = ''; });
+            renderTable(tableKey);
+        }
+
+        function changeTablePage(tableKey, newPage) {
+            tableState[tableKey].page = newPage;
+            renderTable(tableKey);
+        }
+
+        function getFilteredAndPagedData(tableKey) {
+            const state = tableState[tableKey];
+            const raw = state.data || [];
+            const activeFilters = state.filters || {};
+
+            const filtered = raw.filter(row => {
+                for (const col in activeFilters) {
+                    const fVal = activeFilters[col];
+                    if (!fVal) continue;
+                    let cellVal = String(row[col] !== undefined ? row[col] : '').toLowerCase();
+                    if (col === 'nama' && row.username) {
+                        cellVal += ' ' + String(row.username).toLowerCase();
+                    }
+                    if (col === 'jamIn' && row.jamOut) {
+                        cellVal += ' ' + String(row.jamOut).toLowerCase();
+                    }
+                    if (!cellVal.includes(fVal)) return false;
+                }
+                return true;
+            });
+
+            const totalRows = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+            if (state.page > totalPages) state.page = totalPages;
+            if (state.page < 1) state.page = 1;
+
+            const startIdx = (state.page - 1) * PAGE_SIZE;
+            const sliced = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+            return { sliced, totalRows, totalPages, currentPage: state.page, startIdx };
+        }
+
+        function renderPaginationBar(tableKey, meta) {
+            const container = document.getElementById(`pager_${tableKey}`);
+            if (!container) return;
+
+            const fromRow = meta.totalRows === 0 ? 0 : meta.startIdx + 1;
+            const toRow = Math.min(meta.startIdx + PAGE_SIZE, meta.totalRows);
+
+            let pageButtons = '';
+            const maxButtons = 5;
+            let startPage = Math.max(1, meta.currentPage - 2);
+            let endPage = Math.min(meta.totalPages, startPage + maxButtons - 1);
+            if (endPage - startPage < maxButtons - 1) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                const activeClass = p === meta.currentPage
+                    ? 'bg-[#1c2434] text-white font-bold border-[#1c2434]'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200';
+                pageButtons += `<button onclick="changeTablePage('${tableKey}', ${p})" class="w-6 h-6 rounded border text-[11px] transition ${activeClass}">${p}</button>`;
+            }
+
+            container.innerHTML = `
+        <div class="text-slate-500">
+          Menampilkan <strong class="text-slate-800">${fromRow}–${toRow}</strong> dari <strong class="text-slate-800">${meta.totalRows}</strong> data (30/hal)
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="changeTablePage('${tableKey}', ${meta.currentPage - 1})" ${meta.currentPage <= 1 ? 'disabled' : ''}
+            class="px-2 h-6 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-slate-600 font-semibold">
+            Prev
+          </button>
+          ${pageButtons}
+          <button onclick="changeTablePage('${tableKey}', ${meta.currentPage + 1})" ${meta.currentPage >= meta.totalPages ? 'disabled' : ''}
+            class="px-2 h-6 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-slate-600 font-semibold">
+            Next
+          </button>
+        </div>
+      `;
+        }
+
+        function calcDurationLabel(jamIn, jamOut) {
+            if (!jamIn || !jamOut) return 'Belum Out';
+            const p1 = String(jamIn).split(':').map(Number);
+            const p2 = String(jamOut).split(':').map(Number);
+            if (p1.length < 2 || p2.length < 2) return '-';
+            const m1 = (p1[0] * 60) + p1[1];
+            const m2 = (p2[0] * 60) + p2[1];
+            const diff = m2 - m1;
+            if (diff <= 0) return '-';
+            return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+        }
+
+        // Render seluruh tabel tanpa badge foto profil
+        function renderTable(tableKey) {
+            const meta = getFilteredAndPagedData(tableKey);
+            const tbody = document.getElementById(`tbody_${tableKey}`);
+            if (!tbody) return;
+
+            if (tableKey === 'todayLogs' || tableKey === 'allLogs') {
+                const isAll = tableKey === 'allLogs';
+                const colSpan = isAll ? 11 : 10;
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-6 text-center text-slate-400">Tidak ada data absensi pada filter ini.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(l => {
+                        const isLate = l.statusIn === 'Late';
+                        const inTimeColor = isLate ? 'text-amber-600 font-bold' : 'text-slate-800 font-semibold';
+                        const outTimeLabel = l.jamOut ? `<span class="text-slate-800 font-semibold">${l.jamOut}</span>` : `<span class="text-rose-500 font-medium">--:--</span>`;
+                        const durLabel = calcDurationLabel(l.jamIn, l.jamOut);
+
+                        const statusInBadge = isLate
+                            ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Late</span>`
+                            : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">On Time</span>`;
+
+                        const statusOutBadge = l.jamOut
+                            ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Lengkap</span>`
+                            : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Out</span>`;
+
+                        const picCell = `
+              <div class="flex items-center gap-1">
+                ${l.fotoIn ? `<a href="${l.fotoIn}" target="_blank" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-teal-50 text-teal-700 font-semibold text-[10.5px] border border-slate-200">Foto In</a>` : '-'}
+                ${l.fotoOut ? `<a href="${l.fotoOut}" target="_blank" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-indigo-50 text-indigo-700 font-semibold text-[10.5px] border border-slate-200">Foto Out</a>` : ''}
+              </div>
+            `;
+
+                        const locCell = `
+              <div class="flex flex-col gap-0.5">
+                ${l.mapsIn ? `<a href="${l.mapsIn}" target="_blank" class="text-teal-700 hover:underline font-medium text-[10.5px]"><i class="fa-solid fa-location-dot"></i> In: ${l.koordinatIn}</a>` : '-'}
+                ${l.mapsOut ? `<a href="${l.mapsOut}" target="_blank" class="text-indigo-700 hover:underline font-medium text-[10.5px]"><i class="fa-solid fa-location-dot"></i> Out: ${l.koordinatOut}</a>` : ''}
+              </div>
+            `;
+
+                        return `
+              <tr class="tiimi-row">
+                ${isAll ? `<td class="tiimi-td font-mono-code text-[11px] text-slate-600 whitespace-nowrap">${l.tanggal}</td>` : ''}
+                <td class="tiimi-td">
+                  <div class="font-bold text-slate-900 leading-tight">${l.nama}</div>
+                  <div class="text-[10px] text-slate-400 font-mono-code">${l.username}</div>
+                </td>
+                <td class="tiimi-td">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${l.statusSales === 'Inhouse' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}">${l.statusSales}</span>
+                </td>
+                <td class="tiimi-td text-slate-600">${l.provinsi}</td>
+                <td class="tiimi-td font-semibold text-slate-700">${l.stasiun}</td>
+                <td class="tiimi-td whitespace-nowrap">
+                  <div class="inline-flex items-center gap-1.5 font-mono-code text-[11px]">
+                    <span class="${inTimeColor}">${l.jamIn || '--:--'}</span>
+                    <span class="text-[9.5px] font-sans text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">${durLabel}</span>
+                    ${outTimeLabel}
+                  </div>
+                </td>
+                <td class="tiimi-td">${statusInBadge}</td>
+                <td class="tiimi-td">${statusOutBadge}</td>
+                <td class="tiimi-td whitespace-nowrap">${picCell}</td>
+                <td class="tiimi-td whitespace-nowrap">${locCell}</td>
+                <td class="tiimi-td text-center">
+                  <button onclick="openUserDetailModal('${l.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
+                    <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                  </button>
+                </td>
+              </tr>
+            `;
+                    }).join('');
+                }
+            }
+
+            else if (tableKey === 'belumAbsen') {
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-teal-600 font-semibold">Seluruh sales sudah melakukan Clock-In pada tanggal ini.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(u => `
+            <tr class="tiimi-row">
+              <td class="tiimi-td font-bold text-slate-900">${u.nama}</td>
+              <td class="tiimi-td font-mono-code text-[11px] text-slate-500">${u.username}</td>
+              <td class="tiimi-td"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">${u.status}</span></td>
+              <td class="tiimi-td text-slate-600">${u.provinsi}</td>
+              <td class="tiimi-td font-semibold text-slate-800">${u.stasiun}</td>
+              <td class="tiimi-td"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-In</span></td>
+              <td class="tiimi-td text-center">
+                <button onclick="openUserDetailModal('${u.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
+                  <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                </button>
+              </td>
+            </tr>
+          `).join('');
+                }
+            }
+
+            else if (tableKey === 'summary') {
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-400">Tidak ada data rekap ditemukan.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(s => `
+            <tr class="tiimi-row">
+              <td class="tiimi-td">
+                <div class="font-bold text-slate-900">${s.nama}</div>
+                <div class="text-[10px] text-slate-400 font-mono-code">${s.username}</div>
+              </td>
+              <td class="tiimi-td"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">${s.status}</span></td>
+              <td class="tiimi-td text-slate-600">${s.provinsi}</td>
+              <td class="tiimi-td font-semibold text-slate-700">${s.stasiun}</td>
+              <td class="tiimi-td text-center">
+                <span class="px-2 py-0.5 rounded font-bold ${s.totalBelumIn > 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'text-slate-400'}">${s.totalBelumIn}</span>
+              </td>
+              <td class="tiimi-td text-center font-bold text-slate-900">${s.totalHadir}</td>
+              <td class="tiimi-td text-center font-bold text-teal-600">${s.totalOnTime}</td>
+              <td class="tiimi-td text-center">
+                <span class="px-2 py-0.5 rounded font-bold ${s.totalLate > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-400'}">${s.totalLate}x</span>
+              </td>
+              <td class="tiimi-td text-center">
+                <span class="px-2 py-0.5 rounded font-bold ${s.totalBelumOut > 0 ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'text-slate-400'}">${s.totalBelumOut}</span>
+              </td>
+              <td class="tiimi-td text-center">
+                <span class="px-2 py-0.5 rounded font-bold ${s.totalLengkap > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-400'}">${s.totalLengkap}</span>
+              </td>
+              <td class="tiimi-td text-center">
+                <button onclick="openUserDetailModal('${s.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
+                  <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                </button>
+              </td>
+            </tr>
+          `).join('');
+                }
+            }
+
+            else if (tableKey === 'users') {
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Data akun tidak ditemukan.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(u => `
+            <tr class="tiimi-row">
+              <td class="tiimi-td font-bold text-slate-900">${u.nama}</td>
+              <td class="tiimi-td font-mono-code text-[11px]">
+                <span class="text-teal-700 font-semibold">${u.username}</span>
+                <span class="text-slate-400 ml-1">(${u.password})</span>
+              </td>
+              <td class="tiimi-td">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.role === 'Admin' ? 'bg-rose-50 text-rose-700' : 'bg-teal-50 text-teal-700'}">${u.role}</span>
+              </td>
+              <td class="tiimi-td text-slate-700">${u.status}</td>
+              <td class="tiimi-td text-slate-600">${u.provinsi}</td>
+              <td class="tiimi-td font-semibold text-slate-800">${u.stasiun}</td>
+              <td class="tiimi-td text-center whitespace-nowrap space-x-1">
+                <button onclick="openUserDetailModal('${u.username}')" class="px-2 py-1 bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white rounded border border-teal-200 text-[10.5px] font-semibold transition" title="Lihat Semua Riwayat Absen & Maps">
+                  <i class="fa-solid fa-list-check mr-0.5"></i> Detail
+                </button>
+                <button onclick='editUser(${JSON.stringify(u)})' class="px-2 py-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 rounded border border-slate-200 transition" title="Edit Akun">
+                  <i class="fa-solid fa-pen text-[10px]"></i>
+                </button>
+                <button onclick="deleteUser('${u.id}', '${u.nama}')" class="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded border border-slate-200 transition" title="Hapus Akun & Seluruh Database Absensinya">
+                  <i class="fa-solid fa-trash text-[10px]"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+                }
+            }
+
+            else if (tableKey === 'salesHistory') {
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-slate-400">Belum ada riwayat absensi.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(h => `
+            <tr class="tiimi-row">
+              <td class="tiimi-td font-mono-code text-[11px] font-semibold text-slate-800">${h.tanggal}</td>
+              <td class="tiimi-td font-mono-code text-[11px]">
+                <span class="${h.statusIn === 'Late' ? 'text-amber-600 font-bold' : 'text-slate-800 font-semibold'}">${h.jamIn || '--:--'}</span>
+                <span class="mx-1 text-slate-300">→</span>
+                <span class="text-slate-700 font-semibold">${h.jamOut || '--:--'}</span>
+              </td>
+              <td class="tiimi-td">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${h.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'}">${h.statusIn}</span>
+              </td>
+              <td class="tiimi-td">
+                ${h.jamOut ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Completed</span>` : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600">Belum Out</span>`}
+              </td>
+              <td class="tiimi-td whitespace-nowrap space-x-1">
+                ${h.mapsIn ? `<a href="${h.mapsIn}" target="_blank" class="text-teal-700 hover:underline text-[10.5px] font-medium">Maps In</a>` : ''}
+                ${h.fotoIn ? `<a href="${h.fotoIn}" target="_blank" class="text-slate-600 hover:underline text-[10.5px]">Foto In</a>` : ''}
+                ${h.mapsOut ? `<a href="${h.mapsOut}" target="_blank" class="text-indigo-700 hover:underline text-[10.5px] font-medium">Maps Out</a>` : ''}
+              </td>
+            </tr>
+          `).join('');
+                }
+            }
+
+            else if (tableKey === 'userDetail') {
+                if (meta.sliced.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada riwayat absensi untuk personel ini.</td></tr>`;
+                } else {
+                    tbody.innerHTML = meta.sliced.map(r => `
+            <tr class="tiimi-row">
+              <td class="tiimi-td font-mono-code font-bold text-slate-800">${r.tanggal}</td>
+              <td class="tiimi-td font-mono-code font-semibold text-slate-800">${r.jamIn || '-'}</td>
+              <td class="tiimi-td">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${r.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'}">${r.statusIn}</span>
+              </td>
+              <td class="tiimi-td whitespace-nowrap space-x-1.5">
+                ${r.mapsIn ? `<a href="${r.mapsIn}" target="_blank" class="px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded border border-teal-200 text-[10.5px] font-semibold hover:bg-teal-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> ${r.koordinatIn}</a>` : '-'}
+                ${r.fotoIn ? `<a href="${r.fotoIn}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 text-[10.5px] font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto In</a>` : ''}
+              </td>
+              <td class="tiimi-td font-mono-code font-semibold text-slate-800">${r.jamOut || '--:--'}</td>
+              <td class="tiimi-td">
+                ${r.jamOut ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Completed</span>` : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`}
+              </td>
+              <td class="tiimi-td whitespace-nowrap space-x-1.5">
+                ${r.mapsOut ? `<a href="${r.mapsOut}" target="_blank" class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-200 text-[10.5px] font-semibold hover:bg-indigo-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> ${r.koordinatOut}</a>` : '-'}
+                ${r.fotoOut ? `<a href="${r.fotoOut}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 text-[10.5px] font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto Out</a>` : ''}
+              </td>
+            </tr>
+          `).join('');
+                }
+            }
+
+            renderPaginationBar(tableKey, meta);
+        }
+
+        // ================= MODAL DETAIL PERSONEL (BACA SEMUA TANGGAL, JAM, MAPS & FOTO) =================
+        function openUserDetailModal(username) {
+            const uKey = String(username).toLowerCase();
+            const userObj = (tableState.users.data || []).find(u => u.username.toLowerCase() === uKey);
+            const userLogs = (tableState.allLogs.data || []).filter(l => l.username.toLowerCase() === uKey);
+
+            document.getElementById('detailModalName').textContent = userObj ? userObj.nama : username;
+            document.getElementById('detailModalBadge').textContent = userObj ? `${userObj.status} • ${userObj.role}` : 'Sales';
+            document.getElementById('detailModalSub').textContent = userObj ? `Username: ${userObj.username} | Stasiun: ${userObj.stasiun} (${userObj.provinsi})` : username;
+
+            const totalHadir = userLogs.length;
+            const totalOnTime = userLogs.filter(l => l.statusIn === 'On Time').length;
+            const totalLate = userLogs.filter(l => l.statusIn === 'Late').length;
+            const totalOut = userLogs.filter(l => l.jamOut !== '').length;
+
+            document.getElementById('detStatHadir').textContent = totalHadir;
+            document.getElementById('detStatOnTime').textContent = totalOnTime;
+            document.getElementById('detStatLate').textContent = totalLate;
+            document.getElementById('detStatOut').textContent = totalOut;
+
+            tableState.userDetail.data = userLogs;
+            tableState.userDetail.filters = {};
+            tableState.userDetail.page = 1;
+            document.querySelectorAll('[id^="flt_userDetail_"]').forEach(el => { el.value = ''; });
+            renderTable('userDetail');
+
+            document.getElementById('userDetailModal').classList.remove('hidden');
+            document.getElementById('userDetailModal').classList.add('flex');
+        }
+
+        function closeUserDetailModal() {
+            document.getElementById('userDetailModal').classList.add('hidden');
+            document.getElementById('userDetailModal').classList.remove('flex');
+        }
+
+        // ================= REKAP AKUMULASI PER RENTANG TANGGAL (POIN 7) =================
+        function recalculateSummaryByDateRange() {
+            const startStr = document.getElementById('sumStartDate').value;
+            const endStr = document.getElementById('sumEndDate').value;
+
+            // Hitung jumlah hari kalender pada rentang tersebut
+            let totalDaysInRange = 1;
+            if (startStr && endStr) {
+                const d1 = new Date(startStr);
+                const d2 = new Date(endStr);
+                const diffMs = d2 - d1;
+                totalDaysInRange = diffMs >= 0 ? Math.floor(diffMs / 86400000) + 1 : 1;
+            } else {
+                // Jika mode "Semua Tanggal", hitung jumlah tanggal unik yang ada di database
+                const uniqueDates = new Set((tableState.allLogs.data || []).map(l => l.tanggal));
+                totalDaysInRange = Math.max(1, uniqueDates.size);
+            }
+
+            const summaryMap = {};
+            masterSalesOnly.forEach(s => {
+                summaryMap[s.username.toLowerCase()] = {
+                    id: s.id,
+                    username: s.username,
+                    nama: s.nama,
+                    status: s.status,
+                    provinsi: s.provinsi,
+                    stasiun: s.stasiun,
+                    totalHadir: 0,
+                    totalOnTime: 0,
+                    totalLate: 0,
+                    totalBelumOut: 0,
+                    totalLengkap: 0,
+                    totalBelumIn: totalDaysInRange
+                };
+            });
+
+            const attendedDatesPerUser = {};
+
+            (tableState.allLogs.data || []).forEach(log => {
+                if (startStr && log.tanggal < startStr) return;
+                if (endStr && log.tanggal > endStr) return;
+
+                const uKey = log.username.toLowerCase();
+                if (!summaryMap[uKey]) return;
+
+                summaryMap[uKey].totalHadir += 1;
+                if (log.statusIn === 'Late') {
+                    summaryMap[uKey].totalLate += 1;
+                } else if (log.statusIn === 'On Time') {
+                    summaryMap[uKey].totalOnTime += 1;
+                }
+
+                if (log.jamOut && log.jamOut !== '') {
+                    summaryMap[uKey].totalLengkap += 1;
+                } else {
+                    summaryMap[uKey].totalBelumOut += 1;
+                }
+
+                if (!attendedDatesPerUser[uKey]) attendedDatesPerUser[uKey] = new Set();
+                attendedDatesPerUser[uKey].add(log.tanggal);
+            });
+
+            Object.keys(summaryMap).forEach(uKey => {
+                const hadirUnikHari = attendedDatesPerUser[uKey] ? attendedDatesPerUser[uKey].size : 0;
+                summaryMap[uKey].totalBelumIn = Math.max(0, totalDaysInRange - hadirUnikHari);
+            });
+
+            tableState.summary.data = Object.values(summaryMap);
+            tableState.summary.page = 1;
+            renderTable('summary');
+        }
+
+        function setSummaryRangeAllTime() {
+            document.getElementById('sumStartDate').value = '';
+            document.getElementById('sumEndDate').value = '';
+            recalculateSummaryByDateRange();
+        }
+
+        // ================= SALES FLOW (AUTO-RESET PER HARI & KUNCI CLOCK-OUT) =================
+        function applyWorkSettingsToUI() {
+            document.getElementById('salesRuleIn').textContent = workSettings.maxClockIn + ' WIB';
+            document.getElementById('salesRuleOut').textContent = workSettings.minClockOut + ' WIB';
+            document.getElementById('headerBadgeMaxIn').textContent = workSettings.maxClockIn;
+            document.getElementById('headerBadgeMinOut').textContent = workSettings.minClockOut;
+            document.getElementById('subLabelMaxIn').textContent = workSettings.maxClockIn;
+            document.getElementById('subLabelLateIn').textContent = workSettings.maxClockIn;
+            document.getElementById('setMaxClockIn').value = workSettings.maxClockIn;
+            document.getElementById('setMinClockOut').value = workSettings.minClockOut;
+        }
+
+        function loadSalesDashboard() {
+            document.getElementById('salesProfileName').textContent = currentUser.nama;
+            document.getElementById('salesBadgeStatus').textContent = currentUser.status;
+            document.getElementById('salesProfProv').textContent = currentUser.provinsi;
+            document.getElementById('salesProfStasiun').textContent = currentUser.stasiun;
+
+            showLoading('Memuat status kehadiran hari ini...');
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (res.settings) {
+                    workSettings = res.settings;
+                    applyWorkSettingsToUI();
+                }
+                document.getElementById('salesTodayDateLabel').textContent = res.serverDate;
+
+                const rec = res.todayRecord;
+                const btnIn = document.getElementById('btnClockIn');
+                const btnOut = document.getElementById('btnClockOut');
+                const boxIn = document.getElementById('statusBoxIn');
+                const badgeIn = document.getElementById('badgeBoxIn');
+                const boxOut = document.getElementById('statusBoxOut');
+                const badgeOut = document.getElementById('badgeBoxOut');
+                const durEl = document.getElementById('salesWorkDuration');
+                const noticeEl = document.getElementById('salesLockNotice');
+
+                // Jika di hari ini belum ada record (atau sudah ganti hari baru), otomatis reset ke Belum Absen
+                if (!rec) {
+                    boxIn.textContent = 'Belum Clock-In';
+                    badgeIn.classList.add('hidden');
+                    boxOut.textContent = 'Terkunci';
+                    badgeOut.classList.add('hidden');
+                    durEl.textContent = 'Menunggu Clock-In';
+                    btnIn.disabled = false;
+                    btnOut.disabled = true; // Tidak bisa Clock-Out kalau belum Clock-In
+                    noticeEl.textContent = 'Anda wajib melakukan Clock-In terlebih dahulu sebelum bisa melakukan Clock-Out.';
+                } else {
+                    boxIn.textContent = rec.jamIn || '--:--';
+                    badgeIn.textContent = rec.statusIn;
+                    badgeIn.className = `text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block ${rec.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'
+                        }`;
+                    btnIn.disabled = true;
+
+                    if (rec.jamOut) {
+                        boxOut.textContent = rec.jamOut;
+                        badgeOut.textContent = 'Completed';
+                        badgeOut.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        durEl.textContent = calcDurationLabel(rec.jamIn, rec.jamOut);
+                        btnOut.disabled = true;
+                        noticeEl.textContent = 'Absensi Clock-In dan Clock-Out Anda untuk hari ini telah lengkap.';
+                    } else {
+                        boxOut.textContent = 'Belum Clock-Out';
+                        badgeOut.classList.add('hidden');
+                        durEl.textContent = 'Sedang Bertugas';
+                        btnOut.disabled = false;
+                        noticeEl.textContent = `Tombol Clock-Out dapat digunakan setelah pukul ${workSettings.minClockOut} WIB.`;
+                    }
+                }
+
+                tableState.salesHistory.data = res.history || [];
+                document.getElementById('salesHistCountLabel').textContent = `${tableState.salesHistory.data.length} riwayat`;
+                renderTable('salesHistory');
+            }).getSalesTodayStatus(currentUser.username);
+        }
+
+        async function openAttendanceModal(type) {
+            if (type === 'OUT') {
+                const nowStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+                const parts = nowStr.split(':').map(Number);
+                const nowSec = (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
+                const [minH, minM] = workSettings.minClockOut.split(':').map(Number);
+                const minOutSec = (minH * 3600) + ((minM || 0) * 60);
+
+                if (nowSec < minOutSec) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Belum Waktunya Clock-Out',
+                        text: `Clock-Out baru dibuka minimal pukul ${workSettings.minClockOut} WIB.`,
+                        confirmButtonColor: '#0f766e'
+                    });
+                    return;
+                }
+            }
+
+            currentAttendanceType = type;
+            nativePhotoBase64 = null;
+            document.getElementById('nativeCameraInput').value = '';
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('cameraStream').classList.remove('hidden');
+            document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+            document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+            document.getElementById('modalTitle').textContent = type === 'IN' ? 'Konfirmasi Clock-In (Masuk)' : 'Konfirmasi Clock-Out (Pulang)';
+            document.getElementById('cameraModal').classList.remove('hidden');
+            document.getElementById('cameraModal').classList.add('flex');
+            updateSubmitButtonState();
+
+            await retryLiveCamera();
+            fetchGpsLocation();
+        }
+
+        async function retryLiveCamera() {
+            stopCameraStream();
+            nativePhotoBase64 = null;
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('cameraStream').classList.remove('hidden');
+            document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+            document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tidak tersedia');
+                }
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                } catch (e) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+                const videoEl = document.getElementById('cameraStream');
+                videoEl.srcObject = mediaStream;
+                await videoEl.play();
+                updateSubmitButtonState();
+            } catch (err) {
+                document.getElementById('cameraFallbackOverlay').classList.remove('hidden');
+                document.getElementById('cameraFallbackOverlay').classList.add('flex');
+                updateSubmitButtonState();
+            }
+        }
+
+        function handleNativePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.getElementById('cameraCanvas');
+                    const maxW = 480;
+                    const scale = maxW / img.width;
+                    canvas.width = maxW;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    nativePhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                    stopCameraStream();
+                    document.getElementById('cameraStream').classList.add('hidden');
+                    document.getElementById('cameraFallbackOverlay').classList.add('hidden');
+                    document.getElementById('cameraFallbackOverlay').classList.remove('flex');
+
+                    const previewEl = document.getElementById('photoPreview');
+                    previewEl.src = nativePhotoBase64;
+                    previewEl.classList.remove('hidden');
+                    updateSubmitButtonState();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function fetchGpsLocation() {
+            const gpsText = document.getElementById('gpsStatusText');
+            gpsText.textContent = 'Mencari koordinat GPS...';
+            gpsText.className = 'font-mono-code text-amber-600';
+            updateSubmitButtonState();
+
+            if (!navigator.geolocation) {
+                gpsText.textContent = 'Browser tidak mendukung GPS.';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    currentLocation.lat = pos.coords.latitude.toFixed(6);
+                    currentLocation.lng = pos.coords.longitude.toFixed(6);
+                    gpsText.textContent = `${currentLocation.lat}, ${currentLocation.lng}`;
+                    gpsText.className = 'font-mono-code text-teal-700 font-bold';
+                    updateSubmitButtonState();
+                },
+                err => {
+                    gpsText.textContent = 'Izin GPS ditolak. Izinkan Location di ikon Gembok URL Chrome.';
+                    gpsText.className = 'font-mono-code text-rose-600 text-[10.5px]';
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        function updateSubmitButtonState() {
+            const hasGps = !!(currentLocation.lat && currentLocation.lng);
+            const hasCam = !!(mediaStream || nativePhotoBase64);
+            document.getElementById('btnSubmitCapture').disabled = !(hasGps && hasCam);
+        }
+
+        function stopCameraStream() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+        }
+
+        function closeAttendanceModal() {
+            stopCameraStream();
+            document.getElementById('cameraModal').classList.add('hidden');
+            document.getElementById('cameraModal').classList.remove('flex');
+        }
+
+        function captureAndSubmit() {
+            let finalImageBase64 = nativePhotoBase64;
+            if (!finalImageBase64 && mediaStream) {
+                const video = document.getElementById('cameraStream');
+                const canvas = document.getElementById('cameraCanvas');
+                canvas.width = 480;
+                canvas.height = 640;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                finalImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            }
+
+            closeAttendanceModal();
+            showLoading('Menyimpan foto ke Drive & mencatat koordinat...');
+
+            const payload = {
+                type: currentAttendanceType,
+                username: currentUser.username,
+                nama: currentUser.nama,
+                status: currentUser.status,
+                provinsi: currentUser.provinsi,
+                stasiun: currentUser.stasiun,
+                lat: currentLocation.lat,
+                lng: currentLocation.lng,
+                imageBase64: finalImageBase64
+            };
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
+                    loadSalesDashboard();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Ditolak', text: res.message, confirmButtonColor: '#0f766e' });
+                }
+            }).submitAttendance(payload);
+        }
+
+        // ================= ADMIN FLOW =================
+        function stepAdminDate(days) {
+            const input = document.getElementById('adminDateFilter');
+            const curr = new Date(input.value || new Date());
+            curr.setDate(curr.getDate() + days);
+            const iso = curr.toISOString().split('T')[0];
+            input.value = iso;
+            onHeaderDateChange();
+        }
+
+        function onHeaderDateChange() {
+            const selectedDate = document.getElementById('adminDateFilter').value;
+            // Sinkronkan filter tanggal di tab Rekap Akumulasi agar langsung melihat akumulasi tanggal tersebut
+            document.getElementById('sumStartDate').value = selectedDate;
+            document.getElementById('sumEndDate').value = selectedDate;
+            loadAdminData();
+        }
+
+        function switchAdminTab(tabId) {
+            const allTabs = ['tabMonitoring', 'tabBelumAbsen', 'tabSummary', 'tabAllLogs', 'tabUsers', 'tabSettings'];
+            const titles = {
+                tabMonitoring: 'Attendance Harian',
+                tabBelumAbsen: 'Daftar Belum Clock-In',
+                tabSummary: 'Database Akumulasi Kehadiran Per Tanggal',
+                tabAllLogs: 'Semua Database Absensi',
+                tabUsers: 'Kelola Akun Sales & Admin',
+                tabSettings: 'Pengaturan Jam Kerja'
+            };
+
+            allTabs.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                const topBtn = document.getElementById(`navBtn_${id}`);
+                if (topBtn) {
+                    topBtn.className = 'px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1';
+                }
+                const sideBtn = document.getElementById(`sideBtn_${id}`);
+                if (sideBtn) {
+                    sideBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition';
+                }
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('adminPageTitle').textContent = titles[tabId] || 'Attendance';
+
+            const activeTop = document.getElementById(`navBtn_${tabId}`);
+            if (activeTop) {
+                activeTop.className = 'px-2.5 py-1 rounded text-[11px] font-semibold bg-[#2c374b] text-white transition flex items-center gap-1';
+            }
+            const activeSide = document.getElementById(`sideBtn_${tabId}`);
+            if (activeSide) {
+                activeSide.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-teal-700 bg-teal-50 transition';
+            }
+        }
+
+        function loadAdminData() {
+            const selectedDate = document.getElementById('adminDateFilter').value;
+            document.querySelectorAll('.lblSelectedDate').forEach(el => { el.textContent = selectedDate; });
+            showLoading('Menyinkronkan database...');
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (res.settings) {
+                    workSettings = res.settings;
+                    applyWorkSettingsToUI();
+                }
+
+                masterSalesOnly = res.salesOnly || [];
+                tableState.todayLogs.data = res.todayLogs || [];
+                tableState.belumAbsen.data = res.belumAbsen || [];
+                tableState.allLogs.data = res.allLogs || [];
+                tableState.users.data = res.users || [];
+
+                const totalSales = masterSalesOnly.length;
+                const onTimeCount = tableState.todayLogs.data.filter(l => l.statusIn === 'On Time').length;
+                const lateCount = tableState.todayLogs.data.filter(l => l.statusIn === 'Late').length;
+                const clockedOutCount = tableState.todayLogs.data.filter(l => l.jamOut !== '').length;
+                const noClockOutCount = tableState.todayLogs.data.filter(l => l.jamOut === '').length;
+                const belumCount = tableState.belumAbsen.data.length;
+                const rate = totalSales > 0 ? Math.round((tableState.todayLogs.data.length / totalSales) * 100) : 0;
+
+                document.getElementById('kpiTotalSales').textContent = totalSales;
+                document.getElementById('kpiOnTime').textContent = onTimeCount;
+                document.getElementById('kpiLate').textContent = lateCount;
+                document.getElementById('kpiClockedOut').textContent = clockedOutCount;
+                document.getElementById('kpiBelumAbsen').textContent = belumCount;
+                document.getElementById('kpiBelumOut').textContent = noClockOutCount;
+                document.getElementById('kpiAttendanceRate').textContent = rate + '%';
+
+                document.getElementById('badgeNavBelum').textContent = belumCount;
+                document.getElementById('badgeNavLate').textContent = lateCount;
+
+                // Hitung akumulasi sesuai tanggal yang dipilih
+                recalculateSummaryByDateRange();
+
+                renderTable('todayLogs');
+                renderTable('belumAbsen');
+                renderTable('allLogs');
+                renderTable('users');
+            }).getAdminDashboardData(selectedDate);
+        }
+
+        function handleSaveSettings(e) {
+            e.preventDefault();
+            const maxIn = document.getElementById('setMaxClockIn').value;
+            const minOut = document.getElementById('setMinClockOut').value;
+
+            showLoading('Menyimpan aturan jam kerja...');
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    workSettings = res.settings;
+                    applyWorkSettingsToUI();
+                    Swal.fire({ icon: 'success', title: 'Tersimpan', text: res.message, confirmButtonColor: '#0f766e' });
+                }
+            }).saveWorkTimeSettings(maxIn, minOut);
+        }
+
+        // ================= ADMIN USER CRUD & CASCADE DELETE =================
+        function handleSaveUser(e) {
+            e.preventDefault();
+            const userObj = {
+                id: document.getElementById('usrId').value,
+                nama: document.getElementById('usrNama').value.trim(),
+                username: document.getElementById('usrUsername').value.trim(),
+                password: document.getElementById('usrPassword').value.trim(),
+                role: document.getElementById('usrRole').value,
+                status: document.getElementById('usrStatus').value,
+                provinsi: document.getElementById('usrProvinsi').value.trim(),
+                stasiun: document.getElementById('usrStasiun').value.trim()
+            };
+
+            showLoading('Menyimpan data akun...');
+            google.script.run.withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
+                    resetUserForm();
+                    loadAdminData();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: res.message, confirmButtonColor: '#0f766e' });
+                }
+            }).saveUserAdmin(userObj);
+        }
+
+        function editUser(u) {
+            document.getElementById('formUserTitle').textContent = 'Edit Akun: ' + u.nama;
+            document.getElementById('usrId').value = u.id;
+            document.getElementById('usrNama').value = u.nama;
+            document.getElementById('usrUsername').value = u.username;
+            document.getElementById('usrPassword').value = u.password;
+            document.getElementById('usrRole').value = u.role;
+            document.getElementById('usrStatus').value = u.status;
+            document.getElementById('usrProvinsi').value = u.provinsi;
+            document.getElementById('usrStasiun').value = u.stasiun;
+        }
+
+        function resetUserForm() {
+            document.getElementById('formUserTitle').textContent = 'Tambah User / Sales Baru';
+            document.getElementById('userForm').reset();
+            document.getElementById('usrId').value = '';
+        }
+
+        function deleteUser(id, nama) {
+            Swal.fire({
+                title: `Hapus Akun ${nama}?`,
+                text: 'Seluruh data akun DAN semua riwayat absensi milik orang ini akan dihapus permanen agar rasio % kehadiran tetap akurat.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    showLoading('Menghapus akun & seluruh riwayat absensinya...');
+                    google.script.run.withSuccessHandler(res => {
+                        hideLoading();
+                        Swal.fire({ icon: 'success', title: 'Terhapus', text: res.message, confirmButtonColor: '#0f766e' });
+                        loadAdminData();
+                    }).deleteUserAdmin(id);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
