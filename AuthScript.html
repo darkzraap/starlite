@@ -182,8 +182,9 @@
         if (sideSub) sideSub.textContent = `${currentUser.role} • ${currentUser.stasiun}`;
 
         const roleLower = String(currentUser.role || '').toLowerCase();
-        const isAdminOrManager = roleLower === 'admin' || roleLower === 'controller' || roleLower === 'site manager';
-        const isRestrictedManager = roleLower === 'controller' || roleLower === 'site manager';
+        const isAdmin = roleLower === 'admin';
+        const isSiteManager = roleLower === 'site manager';
+        const isAdminOrManager = isAdmin || isSiteManager;
 
         if (isAdminOrManager) {
             document.getElementById('adminLeftSidebar').classList.remove('hidden');
@@ -197,7 +198,8 @@
             document.getElementById('salesView').classList.add('hidden');
             document.getElementById('adminView').classList.remove('hidden');
 
-            // Pengaturan Hak Akses: Controller & Site Manager mirip Admin tapi tidak bisa akses CRUD Kelola Akun Sales & Database Stasiun
+            // Pengaturan Hak Akses: Hanya Admin yang bisa akses Kelola Akun, Database Stasiun & Jam Kerja Sistem
+            const sideMgmt = document.getElementById('sideSectionManagement');
             const navUsers = document.getElementById('navBtn_tabUsers');
             const sideUsers = document.getElementById('sideBtn_tabUsers');
             const btnTambah = document.getElementById('btnHeaderTambahSales');
@@ -209,7 +211,15 @@
             const mobileStations = document.getElementById('mobileTabBtn_tabStations');
             const btnTabStation = document.getElementById('btnTabTambahStation');
 
-            if (isRestrictedManager) {
+            const navSettings = document.getElementById('navBtn_tabSettings');
+            const sideSettings = document.getElementById('sideBtn_tabSettings');
+            const mobileSettings = document.getElementById('mobileTabBtn_tabSettings');
+            const btnShiftSettings = document.getElementById('btnHeaderShiftSettings');
+
+            if (!isAdmin) {
+                // Site Manager: Batasi akses menu pengaturan & database master
+                if (sideMgmt) sideMgmt.classList.add('hidden');
+
                 if (navUsers) navUsers.classList.add('hidden');
                 if (sideUsers) sideUsers.classList.add('hidden');
                 if (btnTambah) btnTambah.classList.add('hidden');
@@ -221,8 +231,20 @@
                 if (mobileStations) mobileStations.classList.add('hidden');
                 if (btnTabStation) btnTabStation.classList.add('hidden');
 
+                if (navSettings) navSettings.classList.add('hidden');
+                if (sideSettings) sideSettings.classList.add('hidden');
+                if (mobileSettings) mobileSettings.classList.add('hidden');
+                if (btnShiftSettings) {
+                    btnShiftSettings.removeAttribute('onclick');
+                    btnShiftSettings.classList.remove('hover:bg-slate-100', 'cursor-pointer');
+                    btnShiftSettings.classList.add('cursor-default');
+                }
+
                 switchAdminTab('tabMonitoring');
             } else {
+                // Admin: Akses penuh ke seluruh menu
+                if (sideMgmt) sideMgmt.classList.remove('hidden');
+
                 if (navUsers) navUsers.classList.remove('hidden');
                 if (sideUsers) sideUsers.classList.remove('hidden');
                 if (btnTambah) btnTambah.classList.remove('hidden');
@@ -233,6 +255,15 @@
                 if (sideStations) sideStations.classList.remove('hidden');
                 if (mobileStations) mobileStations.classList.remove('hidden');
                 if (btnTabStation) btnTabStation.classList.remove('hidden');
+
+                if (navSettings) navSettings.classList.remove('hidden');
+                if (sideSettings) sideSettings.classList.remove('hidden');
+                if (mobileSettings) mobileSettings.classList.remove('hidden');
+                if (btnShiftSettings) {
+                    btnShiftSettings.setAttribute('onclick', "switchAdminTab('tabSettings')");
+                    btnShiftSettings.classList.add('hover:bg-slate-100', 'cursor-pointer');
+                    btnShiftSettings.classList.remove('cursor-default');
+                }
             }
 
             loadAdminData();

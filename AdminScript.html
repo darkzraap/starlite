@@ -26,12 +26,12 @@
 
     function switchAdminTab(tabId) {
         const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
-        if ((tabId === 'tabUsers' || tabId === 'tabStations') && (roleLower === 'controller' || roleLower === 'site manager')) {
+        if ((tabId === 'tabUsers' || tabId === 'tabStations' || tabId === 'tabSettings') && roleLower !== 'admin') {
             Swal.fire({
                 icon: 'warning',
                 title: 'Akses Dibatasi',
-                text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak memiliki izin untuk mengelola akun sales atau database stasiun.`,
-                confirmButtonColor: '#0f766e'
+                text: 'Hanya Administrator yang memiliki izin untuk mengakses kelola akun, database stasiun, atau jam kerja sistem.',
+                confirmButtonColor: '#0284c7'
             });
             return;
         }
@@ -316,6 +316,12 @@
 
     function handleSaveSettings(e) {
         e.preventDefault();
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if (roleLower !== 'admin') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Hanya Admin yang dapat mengubah aturan jam kerja sistem.', confirmButtonColor: '#0284c7' });
+            return;
+        }
+
         const maxIn = document.getElementById('setMaxClockIn').value;
         const minOut = document.getElementById('setMinClockOut').value;
 
@@ -325,20 +331,22 @@
             if (res.success) {
                 workSettings = res.settings;
                 applyWorkSettingsToUI();
-                Swal.fire({ icon: 'success', title: 'Tersimpan', text: res.message, confirmButtonColor: '#0f766e' });
+                Swal.fire({ icon: 'success', title: 'Tersimpan', text: res.message, confirmButtonColor: '#0284c7' });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal Simpan', text: res.message, confirmButtonColor: '#0284c7' });
             }
         }).withFailureHandler(err => {
             hideLoading();
-            Swal.fire({ icon: 'error', title: 'Gagal Simpan', text: err.toString(), confirmButtonColor: '#0f766e' });
-        }).saveWorkTimeSettings(maxIn, minOut);
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0284c7' });
+        }).saveWorkTimeSettings(maxIn, minOut, currentUser ? currentUser.role : '');
     }
 
     // ================= ADMIN USER CRUD & CASCADE DELETE =================
     function handleSaveUser(e) {
         e.preventDefault();
         const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
-        if (roleLower === 'controller' || roleLower === 'site manager') {
-            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak diizinkan menambah atau mengubah akun.`, confirmButtonColor: '#0f766e' });
+        if (roleLower !== 'admin') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Hanya Admin yang diizinkan menambah atau mengubah akun.', confirmButtonColor: '#0284c7' });
             return;
         }
 
@@ -417,8 +425,8 @@
 
     function deleteUser(id, nama) {
         const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
-        if (roleLower === 'controller' || roleLower === 'site manager') {
-            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak diizinkan menghapus akun.`, confirmButtonColor: '#0f766e' });
+        if (roleLower !== 'admin') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Hanya Admin yang diizinkan menghapus akun.', confirmButtonColor: '#0284c7' });
             return;
         }
 

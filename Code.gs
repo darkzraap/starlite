@@ -148,7 +148,10 @@ function getWorkTimeSettings() {
   return config;
 }
 
-function saveWorkTimeSettings(maxClockIn, minClockOut) {
+function saveWorkTimeSettings(maxClockIn, minClockOut, callerRole) {
+  if (String(callerRole || '').toLowerCase() !== 'admin') {
+    return { success: false, message: 'Akses Ditolak: Hanya Admin yang dapat mengubah aturan jam kerja & sistem.' };
+  }
   setupCheck_();
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('SETTINGS');
@@ -795,8 +798,8 @@ function deleteStationAdmin(stationId, callerRole) {
 
 function saveUserAdmin(userObj, callerRole) {
   const role = String(callerRole || '').toLowerCase();
-  if (role === 'controller' || role === 'site manager') {
-    return { success: false, message: 'Akses Ditolak: Role ' + (callerRole || 'ini') + ' tidak diizinkan menambah atau mengubah akun.' };
+  if (role !== 'admin') {
+    return { success: false, message: 'Akses Ditolak: Hanya Admin yang diizinkan menambah atau mengubah akun.' };
   }
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('USERS');
@@ -874,8 +877,8 @@ function saveUserAdmin(userObj, callerRole) {
  */
 function deleteUserAdmin(userId, callerRole) {
   const role = String(callerRole || '').toLowerCase();
-  if (role === 'controller' || role === 'site manager') {
-    return { success: false, message: 'Akses Ditolak: Role ' + (callerRole || 'ini') + ' tidak diizinkan menghapus akun.' };
+  if (role !== 'admin') {
+    return { success: false, message: 'Akses Ditolak: Hanya Admin yang diizinkan menghapus akun.' };
   }
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userSheet = ss.getSheetByName('USERS');
