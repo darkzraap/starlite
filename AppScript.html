@@ -17,7 +17,8 @@
         allLogs: { data: [], filters: {}, page: 1 },
         users: { data: [], filters: {}, page: 1 },
         salesHistory: { data: [], filters: {}, page: 1 },
-        userDetail: { data: [], filters: {}, page: 1 }
+        userDetail: { data: [], filters: {}, page: 1 },
+        stations: { data: [], filters: {}, page: 1 }
     };
 
     function showLoading(text = 'Memuat data...') {
@@ -67,6 +68,9 @@
                 if (col === 'jamIn' && row.jamOut) {
                     cellVal += ' ' + String(row.jamOut).toLowerCase();
                 }
+                if (col === 'stasiun') {
+                    cellVal += ' ' + String(row.stasiunIn || '') + ' ' + String(row.stasiunOut || '') + ' ' + String(row.visitKemanaIn || '');
+                }
                 if (!cellVal.includes(fVal)) return false;
             }
             return true;
@@ -100,31 +104,31 @@
 
         for (let p = startPage; p <= endPage; p++) {
             const activeClass = p === meta.currentPage
-                ? 'bg-[#1c2434] text-white font-bold border-[#1c2434]'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200';
-            pageButtons += `<button onclick="changeTablePage('${tableKey}', ${p})" class="w-6 h-6 rounded border text-[11px] transition ${activeClass}">${p}</button>`;
+                ? 'bg-[#0284c7] text-white font-bold border-[#0284c7] shadow-sm shadow-sky-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200';
+            pageButtons += `<button onclick="changeTablePage('${tableKey}', ${p})" class="w-7 h-7 rounded-lg border text-xs font-semibold transition ${activeClass}">${p}</button>`;
         }
 
         container.innerHTML = `
-            <div class="text-slate-500">
-              Menampilkan <strong class="text-slate-800">${fromRow}–${toRow}</strong> dari <strong class="text-slate-800">${meta.totalRows}</strong> data (30/hal)
+            <div class="text-slate-500 font-medium">
+              Menampilkan <strong class="text-slate-800">${fromRow}–${toRow}</strong> dari <strong class="text-slate-800">${meta.totalRows}</strong> data
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1.5">
               <button onclick="changeTablePage('${tableKey}', ${meta.currentPage - 1})" ${meta.currentPage <= 1 ? 'disabled' : ''}
-                class="px-2 h-6 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-slate-600 font-semibold">
-                Prev
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-600 font-semibold text-xs transition">
+                Sebelumnya
               </button>
               ${pageButtons}
               <button onclick="changeTablePage('${tableKey}', ${meta.currentPage + 1})" ${meta.currentPage >= meta.totalPages ? 'disabled' : ''}
-                class="px-2 h-6 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 text-slate-600 font-semibold">
-                Next
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-600 font-semibold text-xs transition">
+                Selanjutnya
               </button>
             </div>
         `;
     }
 
     function calcDurationLabel(jamIn, jamOut) {
-        if (!jamIn || !jamOut) return 'Belum Out';
+        if (!jamIn || !jamOut) return 'Belum Clock-Out';
         const p1 = String(jamIn).split(':').map(Number);
         const p2 = String(jamOut).split(':').map(Number);
         if (p1.length < 2 || p2.length < 2) return '-';
@@ -132,7 +136,7 @@
         const m2 = (p2[0] * 60) + p2[1];
         const diff = m2 - m1;
         if (diff <= 0) return '-';
-        return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+        return `${Math.floor(diff / 60)} Jam ${diff % 60} Menit`;
     }
 
     function renderTable(tableKey) {
@@ -142,9 +146,9 @@
 
         if (tableKey === 'todayLogs' || tableKey === 'allLogs') {
             const isAll = tableKey === 'allLogs';
-            const colSpan = isAll ? 11 : 10;
+            const colSpan = isAll ? 12 : 11;
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-6 text-center text-slate-400">Tidak ada data absensi pada filter ini.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-8 text-center text-slate-400 font-medium">Tidak ada data kehadiran yang cocok dengan filter pencarian.</td></tr>`;
             } else {
                 tbody.innerHTML = meta.sliced.map(l => {
                     const isLate = l.statusIn === 'Late';
@@ -153,43 +157,69 @@
                     const durLabel = calcDurationLabel(l.jamIn, l.jamOut);
 
                     const statusInBadge = isLate
-                        ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Late</span>`
-                        : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">On Time</span>`;
+                        ? `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Terlambat Masuk</span>`
+                        : `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Tepat Waktu</span>`;
 
                     const statusOutBadge = l.jamOut
-                        ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Lengkap</span>`
-                        : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Out</span>`;
+                        ? `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Selesai Clock-Out</span>`
+                        : `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`;
 
                     const picCell = `
-                        <div class="flex items-center gap-1">
-                          ${l.fotoIn ? `<a href="${l.fotoIn}" target="_blank" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-teal-50 text-teal-700 font-semibold text-[10.5px] border border-slate-200">Foto In</a>` : '-'}
-                          ${l.fotoOut ? `<a href="${l.fotoOut}" target="_blank" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-indigo-50 text-indigo-700 font-semibold text-[10.5px] border border-slate-200">Foto Out</a>` : ''}
+                        <div class="flex items-center gap-1.5">
+                          ${l.fotoIn ? `<a href="${l.fotoIn}" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-50 text-sky-700 font-semibold text-[11px] border border-slate-200 transition"><i class="fa-regular fa-image mr-1"></i>Foto Masuk</a>` : '-'}
+                          ${l.fotoOut ? `<a href="${l.fotoOut}" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 text-indigo-700 font-semibold text-[11px] border border-slate-200 transition"><i class="fa-regular fa-image mr-1"></i>Foto Pulang</a>` : ''}
                         </div>
                     `;
 
                     const locCell = `
-                        <div class="flex flex-col gap-0.5">
-                          ${l.mapsIn ? `<a href="${l.mapsIn}" target="_blank" class="text-teal-700 hover:underline font-medium text-[10.5px]"><i class="fa-solid fa-location-dot"></i> In: ${l.koordinatIn}</a>` : '-'}
-                          ${l.mapsOut ? `<a href="${l.mapsOut}" target="_blank" class="text-indigo-700 hover:underline font-medium text-[10.5px]"><i class="fa-solid fa-location-dot"></i> Out: ${l.koordinatOut}</a>` : ''}
+                        <div class="flex flex-col gap-1">
+                          ${l.mapsIn ? `<a href="${l.mapsIn}" target="_blank" class="text-sky-700 hover:underline font-semibold text-[11px]"><i class="fa-solid fa-location-dot mr-1 text-sky-600"></i>Peta Masuk: ${l.koordinatIn}</a>` : '-'}
+                          ${l.mapsOut ? `<a href="${l.mapsOut}" target="_blank" class="text-indigo-700 hover:underline font-semibold text-[11px]"><i class="fa-solid fa-location-dot mr-1 text-indigo-600"></i>Peta Pulang: ${l.koordinatOut}</a>` : ''}
+                        </div>
+                    `;
+
+                    const stationCell = `
+                        <div class="space-y-0.5 text-xs max-w-[200px]">
+                          <div class="font-bold text-slate-800 truncate" title="${l.stasiunIn || l.stasiun}"><i class="fa-solid fa-train text-sky-600 mr-1 text-[11px]"></i>${l.stasiunIn || l.stasiun}</div>
+                          ${l.visitKemanaIn ? `<div class="text-[11px] text-slate-500 truncate" title="Wilayah Kunjungan: ${l.visitKemanaIn}"><i class="fa-solid fa-route mr-1 text-slate-400"></i>${l.visitKemanaIn}</div>` : ''}
+                        </div>
+                    `;
+
+                    const targetActualCell = `
+                        <div class="flex flex-col gap-1 text-[11.5px] whitespace-nowrap">
+                          <div class="inline-flex items-center gap-1.5">
+                            <span class="text-slate-400 font-medium">Work Order:</span>
+                            <span class="font-bold text-slate-700">Target ${l.targetVisit !== '' && l.targetVisit !== undefined ? l.targetVisit : '-'}</span>
+                            <span class="text-slate-300">/</span>
+                            <span class="font-bold text-sky-700">Realisasi ${l.aktualWo !== '' && l.aktualWo !== undefined ? l.aktualWo : '-'}</span>
+                          </div>
+                          <div class="inline-flex items-center gap-1.5">
+                            <span class="text-slate-400 font-medium">Head Count:</span>
+                            <span class="font-bold text-slate-700">Target ${l.targetClosingHc !== '' && l.targetClosingHc !== undefined ? l.targetClosingHc : '-'}</span>
+                            <span class="text-slate-300">/</span>
+                            <span class="font-bold text-indigo-700">Realisasi ${l.aktualHc !== '' && l.aktualHc !== undefined ? l.aktualHc : '-'}</span>
+                          </div>
+                          ${l.pendingWo !== '' && l.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending Work Order: <strong>${l.pendingWo}</strong></div>` : ''}
                         </div>
                     `;
 
                     return `
                         <tr class="tiimi-row">
-                          ${isAll ? `<td class="tiimi-td font-mono-code text-[11px] text-slate-600 whitespace-nowrap">${l.tanggal}</td>` : ''}
+                          ${isAll ? `<td class="tiimi-td font-mono-code text-xs text-slate-600 whitespace-nowrap font-bold">${l.tanggal}</td>` : ''}
                           <td class="tiimi-td">
                             <div class="font-bold text-slate-900 leading-tight">${l.nama}</div>
-                            <div class="text-[10px] text-slate-400 font-mono-code">${l.username}</div>
+                            <div class="text-[10.5px] text-slate-400 font-mono-code">${l.username}</div>
                           </td>
                           <td class="tiimi-td">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${l.statusSales === 'Inhouse' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}">${l.statusSales}</span>
+                            <span class="px-2 py-0.5 rounded-lg text-[10.5px] font-semibold ${l.statusSales === 'Inhouse' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}">${l.statusSales}</span>
                           </td>
-                          <td class="tiimi-td text-slate-600">${l.provinsi}</td>
-                          <td class="tiimi-td font-semibold text-slate-700">${l.stasiun}</td>
+                          <td class="tiimi-td text-slate-600 font-medium">${l.provinsi}</td>
+                          <td class="tiimi-td">${stationCell}</td>
+                          <td class="tiimi-td">${targetActualCell}</td>
                           <td class="tiimi-td whitespace-nowrap">
-                            <div class="inline-flex items-center gap-1.5 font-mono-code text-[11px]">
+                            <div class="inline-flex items-center gap-1.5 font-mono-code text-xs">
                               <span class="${inTimeColor}">${l.jamIn || '--:--'}</span>
-                              <span class="text-[9.5px] font-sans text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">${durLabel}</span>
+                              <span class="text-[10px] font-sans text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-semibold">${durLabel}</span>
                               ${outTimeLabel}
                             </div>
                           </td>
@@ -198,8 +228,8 @@
                           <td class="tiimi-td whitespace-nowrap">${picCell}</td>
                           <td class="tiimi-td whitespace-nowrap">${locCell}</td>
                           <td class="tiimi-td text-center">
-                            <button onclick="openUserDetailModal('${l.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
-                              <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                            <button onclick="openUserDetailModal('${l.username}')" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0284c7] text-slate-700 hover:text-white rounded-lg text-xs font-semibold border border-slate-200 transition">
+                              <i class="fa-solid fa-eye mr-1"></i> Detail
                             </button>
                           </td>
                         </tr>
@@ -210,19 +240,19 @@
 
         else if (tableKey === 'belumAbsen') {
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-teal-600 font-semibold">Seluruh sales sudah melakukan Clock-In pada tanggal ini.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check text-lg mr-1.5"></i>Seluruh sales sudah melakukan Clock-In pada tanggal ini.</td></tr>`;
             } else {
                 tbody.innerHTML = meta.sliced.map(u => `
                     <tr class="tiimi-row">
                       <td class="tiimi-td font-bold text-slate-900">${u.nama}</td>
-                      <td class="tiimi-td font-mono-code text-[11px] text-slate-500">${u.username}</td>
-                      <td class="tiimi-td"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">${u.status}</span></td>
-                      <td class="tiimi-td text-slate-600">${u.provinsi}</td>
+                      <td class="tiimi-td font-mono-code text-xs text-slate-500">${u.username}</td>
+                      <td class="tiimi-td"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 text-slate-700">${u.status}</span></td>
+                      <td class="tiimi-td text-slate-600 font-medium">${u.provinsi}</td>
                       <td class="tiimi-td font-semibold text-slate-800">${u.stasiun}</td>
-                      <td class="tiimi-td"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-In</span></td>
+                      <td class="tiimi-td"><span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-In</span></td>
                       <td class="tiimi-td text-center">
-                        <button onclick="openUserDetailModal('${u.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
-                          <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                        <button onclick="openUserDetailModal('${u.username}')" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0284c7] text-slate-700 hover:text-white rounded-lg text-xs font-semibold border border-slate-200 transition">
+                          <i class="fa-solid fa-eye mr-1"></i> Detail
                         </button>
                       </td>
                     </tr>
@@ -232,38 +262,59 @@
 
         else if (tableKey === 'summary') {
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-400">Tidak ada data rekap ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center text-slate-400 font-medium">Tidak ada data rekap ditemukan pada periode ini.</td></tr>`;
             } else {
-                tbody.innerHTML = meta.sliced.map(s => `
+                tbody.innerHTML = meta.sliced.map(s => {
+                    const woPct = s.totalTargetVisit > 0 ? Math.round((s.totalAktualWo / s.totalTargetVisit) * 100) : 0;
+                    const hcPct = s.totalTargetHc > 0 ? Math.round((s.totalAktualHc / s.totalTargetHc) * 100) : 0;
+
+                    return `
                     <tr class="tiimi-row">
                       <td class="tiimi-td">
                         <div class="font-bold text-slate-900">${s.nama}</div>
-                        <div class="text-[10px] text-slate-400 font-mono-code">${s.username}</div>
+                        <div class="text-[10.5px] text-slate-400 font-mono-code">${s.username}</div>
                       </td>
-                      <td class="tiimi-td"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">${s.status}</span></td>
-                      <td class="tiimi-td text-slate-600">${s.provinsi}</td>
+                      <td class="tiimi-td"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 text-slate-700">${s.status}</span></td>
+                      <td class="tiimi-td text-slate-600 font-medium">${s.provinsi}</td>
                       <td class="tiimi-td font-semibold text-slate-700">${s.stasiun}</td>
                       <td class="tiimi-td text-center">
-                        <span class="px-2 py-0.5 rounded font-bold ${s.totalBelumIn > 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'text-slate-400'}">${s.totalBelumIn}</span>
+                        <span class="px-2.5 py-0.5 rounded-lg font-bold text-xs ${s.totalBelumIn > 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'text-slate-400'}">${s.totalBelumIn}</span>
                       </td>
-                      <td class="tiimi-td text-center font-bold text-slate-900">${s.totalHadir}</td>
-                      <td class="tiimi-td text-center font-bold text-teal-600">${s.totalOnTime}</td>
+                      <td class="tiimi-td text-center font-bold text-slate-900 text-xs">${s.totalHadir}</td>
+                      <td class="tiimi-td text-center font-bold text-emerald-600 text-xs">${s.totalOnTime}</td>
                       <td class="tiimi-td text-center">
-                        <span class="px-2 py-0.5 rounded font-bold ${s.totalLate > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-400'}">${s.totalLate}x</span>
-                      </td>
-                      <td class="tiimi-td text-center">
-                        <span class="px-2 py-0.5 rounded font-bold ${s.totalBelumOut > 0 ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'text-slate-400'}">${s.totalBelumOut}</span>
+                        <span class="px-2.5 py-0.5 rounded-lg font-bold text-xs ${s.totalLate > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-400'}">${s.totalLate} Hari</span>
                       </td>
                       <td class="tiimi-td text-center">
-                        <span class="px-2 py-0.5 rounded font-bold ${s.totalLengkap > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-400'}">${s.totalLengkap}</span>
+                        <span class="px-2.5 py-0.5 rounded-lg font-bold text-xs ${s.totalBelumOut > 0 ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'text-slate-400'}">${s.totalBelumOut}</span>
                       </td>
                       <td class="tiimi-td text-center">
-                        <button onclick="openUserDetailModal('${s.username}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded text-[10.5px] font-semibold border border-slate-200 transition">
-                          <i class="fa-solid fa-eye mr-0.5"></i> Detail
+                        <span class="px-2.5 py-0.5 rounded-lg font-bold text-xs ${s.totalLengkap > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-400'}">${s.totalLengkap}</span>
+                      </td>
+                      <td class="tiimi-td text-center whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1.5 text-xs">
+                          <span class="font-bold text-slate-600">Target ${s.totalTargetVisit}</span>
+                          <span class="text-slate-300">/</span>
+                          <span class="font-bold text-sky-700">Realisasi ${s.totalAktualWo}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-sky-700 block mt-0.5">Capaian: ${woPct}%</span>
+                      </td>
+                      <td class="tiimi-td text-center whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1.5 text-xs">
+                          <span class="font-bold text-slate-600">Target ${s.totalTargetHc}</span>
+                          <span class="text-slate-300">/</span>
+                          <span class="font-bold text-indigo-700">Realisasi ${s.totalAktualHc}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-indigo-700 block mt-0.5">Capaian: ${hcPct}%</span>
+                      </td>
+                      <td class="tiimi-td text-center">
+                        <button onclick="openUserDetailModal('${s.username}')" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0284c7] text-slate-700 hover:text-white rounded-lg text-xs font-semibold border border-slate-200 transition">
+                          <i class="fa-solid fa-eye mr-1"></i> Detail
                         </button>
                       </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 
@@ -279,7 +330,12 @@
                         <span class="text-slate-400 ml-1">(${u.password})</span>
                       </td>
                       <td class="tiimi-td">
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.role === 'Admin' ? 'bg-rose-50 text-rose-700' : 'bg-teal-50 text-teal-700'}">${u.role}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${
+                            u.role === 'Admin' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                            u.role === 'Controller' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            u.role === 'Site Manager' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            'bg-teal-50 text-teal-700 border-teal-200'
+                        }">${u.role}</span>
                       </td>
                       <td class="tiimi-td text-slate-700">${u.status}</td>
                       <td class="tiimi-td text-slate-600">${u.provinsi}</td>
@@ -301,55 +357,210 @@
         }
 
         else if (tableKey === 'salesHistory') {
+            const mobileList = document.getElementById('mobileList_salesHistory');
+
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-slate-400">Belum ada riwayat absensi.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Belum ada riwayat absensi.</td></tr>`;
+                if (mobileList) {
+                    mobileList.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">Belum ada riwayat absensi.</div>`;
+                }
             } else {
-                tbody.innerHTML = meta.sliced.map(h => `
+                tbody.innerHTML = meta.sliced.map(h => {
+                    const isLate = h.statusIn === 'Late';
+                    const statusInBadge = isLate
+                        ? `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Terlambat Masuk</span>`
+                        : `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Tepat Waktu</span>`;
+                    const statusOutBadge = h.jamOut
+                        ? `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Selesai Clock-Out</span>`
+                        : `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`;
+
+                    const targetActualLabel = (h.targetVisit !== '' || h.aktualWo !== '') 
+                        ? `<div class="text-xs text-slate-700 leading-snug space-y-0.5">
+                             <div>Work Order: <span class="font-bold text-slate-600">Target ${h.targetVisit || '-'}</span> / <span class="font-bold text-sky-700">Realisasi ${h.aktualWo || '-'}</span></div>
+                             <div>Head Count: <span class="font-bold text-slate-600">Target ${h.targetClosingHc || '-'}</span> / <span class="font-bold text-indigo-700">Realisasi ${h.aktualHc || '-'}</span></div>
+                           </div>`
+                        : '<span class="text-slate-400 text-xs">-</span>';
+
+                    return `
                     <tr class="tiimi-row">
-                      <td class="tiimi-td font-mono-code text-[11px] font-semibold text-slate-800">${h.tanggal}</td>
-                      <td class="tiimi-td font-mono-code text-[11px]">
-                        <span class="${h.statusIn === 'Late' ? 'text-amber-600 font-bold' : 'text-slate-800 font-semibold'}">${h.jamIn || '--:--'}</span>
-                        <span class="mx-1 text-slate-300">→</span>
-                        <span class="text-slate-700 font-semibold">${h.jamOut || '--:--'}</span>
+                      <td class="tiimi-td font-mono-code text-xs font-bold text-slate-800 whitespace-nowrap">${h.tanggal}</td>
+                      <td class="tiimi-td text-xs">
+                        <span class="font-bold text-slate-800">${h.stasiunIn || '-'}</span>
+                        ${h.visitKemanaIn ? `<p class="text-[11px] text-slate-500 mt-0.5">Wilayah: ${h.visitKemanaIn}</p>` : ''}
                       </td>
-                      <td class="tiimi-td">
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${h.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'}">${h.statusIn}</span>
+                      <td class="tiimi-td font-mono-code text-xs whitespace-nowrap">
+                        <span class="${isLate ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'}">${h.jamIn || '--:--'}</span>
+                        <span class="mx-1.5 text-slate-300">→</span>
+                        <span class="text-slate-700 font-bold">${h.jamOut || '--:--'}</span>
                       </td>
-                      <td class="tiimi-td">
-                        ${h.jamOut ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Completed</span>` : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600">Belum Out</span>`}
+                      <td class="tiimi-td whitespace-nowrap">${targetActualLabel}</td>
+                      <td class="tiimi-td whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">${statusInBadge} ${statusOutBadge}</div>
                       </td>
-                      <td class="tiimi-td whitespace-nowrap space-x-1">
-                        ${h.mapsIn ? `<a href="${h.mapsIn}" target="_blank" class="text-teal-700 hover:underline text-[10.5px] font-medium">Maps In</a>` : ''}
-                        ${h.fotoIn ? `<a href="${h.fotoIn}" target="_blank" class="text-slate-600 hover:underline text-[10.5px]">Foto In</a>` : ''}
-                        ${h.mapsOut ? `<a href="${h.mapsOut}" target="_blank" class="text-indigo-700 hover:underline text-[10.5px] font-medium">Maps Out</a>` : ''}
+                      <td class="tiimi-td whitespace-nowrap space-x-1.5 text-xs">
+                        ${h.mapsIn ? `<a href="${h.mapsIn}" target="_blank" class="px-2.5 py-1 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded-lg border border-sky-200 font-semibold transition"><i class="fa-solid fa-location-dot mr-1"></i>Peta Lokasi</a>` : ''}
+                        ${h.fotoIn ? `<a href="${h.fotoIn}" target="_blank" class="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white rounded-lg border border-slate-200 font-semibold transition"><i class="fa-regular fa-image mr-1"></i>Foto Masuk</a>` : ''}
+                        ${h.fotoOut ? `<a href="${h.fotoOut}" target="_blank" class="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-800 hover:text-white rounded-lg border border-slate-200 font-semibold transition"><i class="fa-regular fa-image mr-1"></i>Foto Pulang</a>` : ''}
                       </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
+
+                if (mobileList) {
+                    mobileList.innerHTML = meta.sliced.map(h => {
+                        const isLate = h.statusIn === 'Late';
+                        const statusInBadge = isLate
+                            ? `<span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Terlambat Masuk</span>`
+                            : `<span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Tepat Waktu</span>`;
+                        const statusOutBadge = h.jamOut
+                            ? `<span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Selesai Clock-Out</span>`
+                            : `<span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`;
+
+                        return `
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono-code font-bold text-xs text-slate-800">${h.tanggal}</span>
+                                <div class="flex items-center gap-1.5">${statusInBadge} ${statusOutBadge}</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Clock-In (Masuk)</span>
+                                    <span class="font-mono-code font-extrabold text-sm text-slate-800">${h.jamIn || '--:--'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Clock-Out (Pulang)</span>
+                                    <span class="font-mono-code font-extrabold text-sm text-slate-800">${h.jamOut || '--:--'}</span>
+                                </div>
+                            </div>
+
+                            ${(h.stasiunIn || h.visitKemanaIn) ? `
+                            <div class="text-xs text-slate-600">
+                                <span class="font-bold text-slate-800"><i class="fa-solid fa-train text-sky-600 text-xs mr-1"></i> ${h.stasiunIn || '-'}</span>
+                                ${h.visitKemanaIn ? `<p class="text-[11px] text-slate-500 mt-1"><i class="fa-solid fa-route text-slate-400 text-xs mr-1"></i> ${h.visitKemanaIn}</p>` : ''}
+                            </div>` : ''}
+
+                            ${(h.targetVisit !== '' || h.aktualWo !== '') ? `
+                            <div class="space-y-1 text-xs bg-sky-50/40 p-2.5 rounded-xl border border-sky-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500">Target Kunjungan: <strong class="text-slate-700">${h.targetVisit || '-'}</strong></span>
+                                    <span class="text-sky-800 font-bold">Realisasi Work Order: ${h.aktualWo || '-'}</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-0.5 border-t border-sky-100/60">
+                                    <span class="text-slate-500">Target Closing Head Count: <strong class="text-slate-700">${h.targetClosingHc || '-'}</strong></span>
+                                    <span class="text-indigo-800 font-bold">Realisasi Head Count: ${h.aktualHc || '-'}</span>
+                                </div>
+                            </div>` : ''}
+
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs flex-wrap">
+                                ${h.fotoIn ? `<a href="${h.fotoIn}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-semibold"><i class="fa-regular fa-image text-slate-500 mr-1"></i> Foto Masuk</a>` : ''}
+                                ${h.mapsIn ? `<a href="${h.mapsIn}" target="_blank" class="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 rounded-xl text-sky-700 font-semibold"><i class="fa-solid fa-location-dot text-sky-600 mr-1"></i> Peta Masuk</a>` : ''}
+                                ${h.fotoOut ? `<a href="${h.fotoOut}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-semibold"><i class="fa-regular fa-image text-slate-500 mr-1"></i> Foto Pulang</a>` : ''}
+                                ${h.mapsOut ? `<a href="${h.mapsOut}" target="_blank" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-indigo-700 font-semibold"><i class="fa-solid fa-location-dot text-indigo-600 mr-1"></i> Peta Pulang</a>` : ''}
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
             }
         }
 
         else if (tableKey === 'userDetail') {
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada riwayat absensi untuk personel ini.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">Belum ada riwayat absensi untuk personel ini.</td></tr>`;
             } else {
-                tbody.innerHTML = meta.sliced.map(r => `
+                tbody.innerHTML = meta.sliced.map(r => {
+                    const isLate = r.statusIn === 'Late';
+                    const statusInBadge = isLate
+                        ? `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Terlambat Masuk</span>`
+                        : `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Tepat Waktu</span>`;
+                    const statusOutBadge = r.jamOut
+                        ? `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Selesai Clock-Out</span>`
+                        : `<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`;
+
+                    const cidBadges = r.cidList
+                        ? r.cidList.split(',').map(c => `<span class="px-2 py-0.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 font-mono-code text-[10.5px] font-bold">${c.trim()}</span>`).join(' ')
+                        : `<span class="text-slate-400 italic text-[11px]">-</span>`;
+
+                    return `
                     <tr class="tiimi-row">
-                      <td class="tiimi-td font-mono-code font-bold text-slate-800">${r.tanggal}</td>
-                      <td class="tiimi-td font-mono-code font-semibold text-slate-800">${r.jamIn || '-'}</td>
+                      <td class="tiimi-td font-mono-code font-bold text-slate-800 whitespace-nowrap">${r.tanggal}</td>
                       <td class="tiimi-td">
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${r.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'}">${r.statusIn}</span>
+                        <div class="space-y-1 text-xs">
+                          <div><span class="text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">Clock-In:</span> <span class="font-semibold text-slate-800 ml-1">${r.stasiunIn || r.stasiun || '-'}</span></div>
+                          ${r.stasiunOut ? `<div><span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">Clock-Out:</span> <span class="font-semibold text-slate-700 ml-1">${r.stasiunOut}</span></div>` : ''}
+                        </div>
                       </td>
-                      <td class="tiimi-td whitespace-nowrap space-x-1.5">
-                        ${r.mapsIn ? `<a href="${r.mapsIn}" target="_blank" class="px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded border border-teal-200 text-[10.5px] font-semibold hover:bg-teal-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> ${r.koordinatIn}</a>` : '-'}
-                        ${r.fotoIn ? `<a href="${r.fotoIn}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 text-[10.5px] font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto In</a>` : ''}
-                      </td>
-                      <td class="tiimi-td font-mono-code font-semibold text-slate-800">${r.jamOut || '--:--'}</td>
                       <td class="tiimi-td">
-                        ${r.jamOut ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Completed</span>` : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Belum Clock-Out</span>`}
+                        <div class="space-y-1 text-xs">
+                          <div><span class="text-[10px] font-bold text-slate-400">Rencana Kunjungan:</span> <span class="text-slate-800 ml-1 font-medium">${r.visitKemanaIn || '-'}</span></div>
+                          ${r.visitKemanaOut ? `<div><span class="text-[10px] font-bold text-indigo-600">Realisasi Kunjungan:</span> <span class="text-slate-700 ml-1 font-medium">${r.visitKemanaOut}</span></div>` : ''}
+                        </div>
                       </td>
-                      <td class="tiimi-td whitespace-nowrap space-x-1.5">
-                        ${r.mapsOut ? `<a href="${r.mapsOut}" target="_blank" class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-200 text-[10.5px] font-semibold hover:bg-indigo-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> ${r.koordinatOut}</a>` : '-'}
-                        ${r.fotoOut ? `<a href="${r.fotoOut}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 text-[10.5px] font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto Out</a>` : ''}
+                      <td class="tiimi-td whitespace-nowrap">
+                        <div class="flex flex-col gap-1 text-[11.5px]">
+                          <div class="inline-flex items-center gap-1.5">
+                            <span class="text-slate-400 text-xs">Work Order:</span>
+                            <span class="px-1.5 py-0.5 bg-slate-100 rounded font-bold text-slate-700">Target: ${r.targetVisit !== '' && r.targetVisit !== undefined ? r.targetVisit : '-'}</span>
+                            <span class="text-slate-300">/</span>
+                            <span class="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded font-bold">Realisasi: ${r.aktualWo !== '' && r.aktualWo !== undefined ? r.aktualWo : '-'}</span>
+                          </div>
+                          <div class="inline-flex items-center gap-1.5">
+                            <span class="text-slate-400 text-xs">Head Count:</span>
+                            <span class="px-1.5 py-0.5 bg-slate-100 rounded font-bold text-slate-700">Target: ${r.targetClosingHc !== '' && r.targetClosingHc !== undefined ? r.targetClosingHc : '-'}</span>
+                            <span class="text-slate-300">/</span>
+                            <span class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-bold">Realisasi: ${r.aktualHc !== '' && r.aktualHc !== undefined ? r.aktualHc : '-'}</span>
+                          </div>
+                          ${r.pendingWo !== '' && r.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending Work Order: <strong>${r.pendingWo}</strong></div>` : ''}
+                        </div>
+                      </td>
+                      <td class="tiimi-td">
+                        <div class="flex flex-wrap gap-1 max-w-[200px]">${cidBadges}</div>
+                      </td>
+                      <td class="tiimi-td whitespace-nowrap">
+                        <div class="space-y-1">
+                          <div class="flex items-center gap-1.5 font-mono-code text-xs font-semibold text-slate-800">
+                            ${r.jamIn || '--:--'} ${statusInBadge}
+                          </div>
+                          <div class="flex items-center gap-1 text-[11px]">
+                            ${r.mapsIn ? `<a href="${r.mapsIn}" target="_blank" class="px-1.5 py-0.5 bg-sky-50 text-sky-700 rounded-md border border-sky-200 font-semibold hover:bg-sky-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> Peta</a>` : ''}
+                            ${r.fotoIn ? `<a href="${r.fotoIn}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200 font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto</a>` : ''}
+                          </div>
+                        </div>
+                      </td>
+                      <td class="tiimi-td whitespace-nowrap">
+                        <div class="space-y-1">
+                          <div class="flex items-center gap-1.5 font-mono-code text-xs font-semibold text-slate-800">
+                            ${r.jamOut || '--:--'} ${statusOutBadge}
+                          </div>
+                          <div class="flex items-center gap-1 text-[11px]">
+                            ${r.mapsOut ? `<a href="${r.mapsOut}" target="_blank" class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200 font-semibold hover:bg-indigo-600 hover:text-white"><i class="fa-solid fa-location-dot"></i> Peta</a>` : ''}
+                            ${r.fotoOut ? `<a href="${r.fotoOut}" target="_blank" class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200 font-semibold hover:bg-slate-800 hover:text-white"><i class="fa-regular fa-image"></i> Foto</a>` : ''}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        else if (tableKey === 'stations') {
+            if (meta.sliced.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">Data stasiun tidak ditemukan.</td></tr>`;
+            } else {
+                tbody.innerHTML = meta.sliced.map(st => `
+                    <tr class="tiimi-row">
+                      <td class="tiimi-td font-mono-code text-[11px] text-slate-500">${st.id}</td>
+                      <td class="tiimi-td font-bold text-slate-900">${st.kota}</td>
+                      <td class="tiimi-td font-semibold text-slate-700">${st.namaStasiun}</td>
+                      <td class="tiimi-td text-center whitespace-nowrap space-x-1">
+                        <button onclick='editStation(${JSON.stringify(st)})' class="px-2 py-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 rounded border border-slate-200 transition" title="Edit Stasiun">
+                          <i class="fa-solid fa-pen text-[10px]"></i> Edit
+                        </button>
+                        <button onclick="deleteStation('${st.id}', '${st.namaStasiun}')" class="px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded border border-slate-200 transition" title="Hapus Stasiun">
+                          <i class="fa-solid fa-trash text-[10px]"></i> Hapus
+                        </button>
                       </td>
                     </tr>
                 `).join('');
@@ -357,5 +568,23 @@
         }
 
         renderPaginationBar(tableKey, meta);
+    }
+
+    function updateStationDatalist() {
+        const dl = document.getElementById('stationOptionsList');
+        if (!dl) return;
+        const stations = tableState.stations.data || [];
+        dl.innerHTML = stations.map(s => `<option value="${s.namaStasiun}">${s.kota}</option>`).join('');
+    }
+
+    function onUserStationInput(val) {
+        const stations = tableState.stations.data || [];
+        const matched = stations.find(s => s.namaStasiun.toLowerCase() === String(val).toLowerCase().trim());
+        if (matched) {
+            const provInput = document.getElementById('usrProvinsi');
+            if (provInput && !provInput.value) {
+                provInput.value = matched.kota;
+            }
+        }
     }
 </script>

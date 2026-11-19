@@ -62,9 +62,11 @@ function setupDatabase() {
     absenSheet.appendRow([
       'ID_Absen', 'Tanggal', 'Username', 'Nama_Sales', 'Status_Sales', 'Provinsi', 'Stasiun',
       'Jam_In', 'Status_In', 'Koordinat_In', 'Maps_In', 'Foto_In',
-      'Jam_Out', 'Status_Out', 'Koordinat_Out', 'Maps_Out', 'Foto_Out'
+      'Jam_Out', 'Status_Out', 'Koordinat_Out', 'Maps_Out', 'Foto_Out',
+      'Stasiun_In', 'Target_Visit', 'Visit_Kemana_In', 'Target_Closing_HC',
+      'Stasiun_Out', 'Visit_Kemana_Out', 'Aktual_WO', 'Aktual_HC', 'Pending_WO', 'CID_List'
     ]);
-    absenSheet.getRange('A1:Q1').setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
+    absenSheet.getRange('A1:AA1').setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
   }
 
   let settingSheet = ss.getSheetByName('SETTINGS');
@@ -76,10 +78,24 @@ function setupDatabase() {
     settingSheet.getRange('A1:C1').setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
   }
 
+  let stasiunSheet = ss.getSheetByName('STASIUN');
+  if (!stasiunSheet) {
+    stasiunSheet = ss.insertSheet('STASIUN');
+    stasiunSheet.appendRow(['ID_Stasiun', 'Kota', 'Nama_Stasiun', 'Updated_At']);
+    stasiunSheet.appendRow(['STN-001', 'Bandung', 'Stasiun Bandung', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')]);
+    stasiunSheet.appendRow(['STN-002', 'Bandung', 'Stasiun Kiaracondong', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')]);
+    stasiunSheet.appendRow(['STN-003', 'Jakarta', 'Stasiun Gambir', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')]);
+    stasiunSheet.appendRow(['STN-004', 'Jakarta', 'Stasiun Pasar Senen', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')]);
+    stasiunSheet.appendRow(['STN-005', 'Surabaya', 'Stasiun Gubeng', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')]);
+    stasiunSheet.getRange('A1:D1').setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
+  }
+
   const sheet1 = ss.getSheetByName('Sheet1');
   if (sheet1 && ss.getSheets().length > 1) {
     ss.deleteSheet(sheet1);
   }
+
+  upgradeAbsensiSheetHeaders_();
 
   try {
     DriveApp.getFolderById(MAIN_FOLDER_ID).getName();
@@ -88,10 +104,31 @@ function setupDatabase() {
   return "Setup Database Berhasil!";
 }
 
+function upgradeAbsensiSheetHeaders_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('ABSENSI');
+  if (!sheet) return;
+  const lastCol = sheet.getLastColumn();
+  const requiredHeaders = [
+    'ID_Absen', 'Tanggal', 'Username', 'Nama_Sales', 'Status_Sales', 'Provinsi', 'Stasiun',
+    'Jam_In', 'Status_In', 'Koordinat_In', 'Maps_In', 'Foto_In',
+    'Jam_Out', 'Status_Out', 'Koordinat_Out', 'Maps_Out', 'Foto_Out',
+    'Stasiun_In', 'Target_Visit', 'Visit_Kemana_In', 'Target_Closing_HC',
+    'Stasiun_Out', 'Visit_Kemana_Out', 'Aktual_WO', 'Aktual_HC', 'Pending_WO', 'CID_List'
+  ];
+  if (lastCol < requiredHeaders.length) {
+    const missingHeaders = requiredHeaders.slice(lastCol);
+    sheet.getRange(1, lastCol + 1, 1, missingHeaders.length).setValues([missingHeaders]);
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
+  }
+}
+
 function setupCheck_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  if (!ss.getSheetByName('USERS') || !ss.getSheetByName('ABSENSI') || !ss.getSheetByName('SETTINGS')) {
+  if (!ss.getSheetByName('USERS') || !ss.getSheetByName('ABSENSI') || !ss.getSheetByName('SETTINGS') || !ss.getSheetByName('STASIUN')) {
     setupDatabase();
+  } else {
+    upgradeAbsensiSheetHeaders_();
   }
 }
 
@@ -255,9 +292,19 @@ function getSalesTodayStatus(username) {
       record = {
         tanggal: rowDate,
         jamIn: formatRowTime_(data[i][7]),
-        statusIn: String(data[i][8]),
+        statusIn: String(data[i][8] || ''),
         jamOut: formatRowTime_(data[i][12]),
-        statusOut: String(data[i][13])
+        statusOut: String(data[i][13] || ''),
+        stasiunIn: String(data[i][17] || ''),
+        targetVisit: formatNumberOrBlank_(data[i][18]),
+        visitKemanaIn: String(data[i][19] || ''),
+        targetClosingHc: formatNumberOrBlank_(data[i][20]),
+        stasiunOut: String(data[i][21] || ''),
+        visitKemanaOut: String(data[i][22] || ''),
+        aktualWo: formatNumberOrBlank_(data[i][23]),
+        aktualHc: formatNumberOrBlank_(data[i][24]),
+        pendingWo: formatNumberOrBlank_(data[i][25]),
+        cidList: String(data[i][26] || '')
       };
       break;
     }
@@ -269,15 +316,25 @@ function getSalesTodayStatus(username) {
       history.push({
         tanggal: formatRowDate_(data[i][1]),
         jamIn: formatRowTime_(data[i][7]),
-        statusIn: String(data[i][8]),
-        koordinatIn: String(data[i][9]),
-        mapsIn: String(data[i][10]),
-        fotoIn: String(data[i][11]),
+        statusIn: String(data[i][8] || ''),
+        koordinatIn: String(data[i][9] || ''),
+        mapsIn: String(data[i][10] || ''),
+        fotoIn: String(data[i][11] || ''),
         jamOut: formatRowTime_(data[i][12]),
-        statusOut: String(data[i][13]),
-        koordinatOut: String(data[i][14]),
-        mapsOut: String(data[i][15]),
-        fotoOut: String(data[i][16])
+        statusOut: String(data[i][13] || ''),
+        koordinatOut: String(data[i][14] || ''),
+        mapsOut: String(data[i][15] || ''),
+        fotoOut: String(data[i][16] || ''),
+        stasiunIn: String(data[i][17] || ''),
+        targetVisit: formatNumberOrBlank_(data[i][18]),
+        visitKemanaIn: String(data[i][19] || ''),
+        targetClosingHc: formatNumberOrBlank_(data[i][20]),
+        stasiunOut: String(data[i][21] || ''),
+        visitKemanaOut: String(data[i][22] || ''),
+        aktualWo: formatNumberOrBlank_(data[i][23]),
+        aktualHc: formatNumberOrBlank_(data[i][24]),
+        pendingWo: formatNumberOrBlank_(data[i][25]),
+        cidList: String(data[i][26] || '')
       });
     }
   }
@@ -288,7 +345,8 @@ function getSalesTodayStatus(username) {
     timezoneLabel: tzInfo.label,
     settings: settings,
     todayRecord: record,
-    history: history
+    history: history,
+    stations: getStationsData_()
   };
 }
 
@@ -376,6 +434,13 @@ function submitAttendance(payload) {
       const statusIn = isLate ? 'Late' : 'On Time';
       const idAbsen = 'ABS-' + Utilities.formatDate(now, tzInfo.tz, 'yyyyMMddHHmmss');
 
+      const stasiunInStr = Array.isArray(payload.stasiunIn) 
+        ? payload.stasiunIn.join(', ') 
+        : String(payload.stasiunIn || payload.stasiun || '');
+      const targetVisit = payload.targetVisit !== undefined && payload.targetVisit !== '' ? Number(payload.targetVisit) : '';
+      const visitKemanaIn = String(payload.visitKemanaIn || '');
+      const targetClosingHc = payload.targetClosingHc !== undefined && payload.targetClosingHc !== '' ? Number(payload.targetClosingHc) : '';
+
       sheet.appendRow([
         idAbsen,
         "'" + todayStr,
@@ -389,7 +454,12 @@ function submitAttendance(payload) {
         coordStr,
         mapsUrl,
         photoUrl,
-        '', '', '', '', ''
+        '', '', '', '', '', // Jam_Out, Status_Out, Koordinat_Out, Maps_Out, Foto_Out
+        stasiunInStr,
+        targetVisit,
+        visitKemanaIn,
+        targetClosingHc,
+        '', '', '', '', '', '' // Stasiun_Out, Visit_Kemana_Out, Aktual_WO, Aktual_HC, Pending_WO, CID_List
       ]);
 
       return { 
@@ -399,12 +469,33 @@ function submitAttendance(payload) {
 
     } else if (payload.type === 'OUT') {
       const statusOut = 'Completed';
+
+      const stasiunOutStr = Array.isArray(payload.stasiunOut) 
+        ? payload.stasiunOut.join(', ') 
+        : String(payload.stasiunOut || payload.stasiun || '');
+      const visitKemanaOut = String(payload.visitKemanaOut || '');
+      const aktualWo = payload.aktualWo !== undefined && payload.aktualWo !== '' ? Number(payload.aktualWo) : '';
+      const aktualHc = payload.aktualHc !== undefined && payload.aktualHc !== '' ? Number(payload.aktualHc) : '';
+      const pendingWo = payload.pendingWo !== undefined && payload.pendingWo !== '' ? Number(payload.pendingWo) : '';
+      const cidListStr = Array.isArray(payload.cidList) 
+        ? payload.cidList.filter(c => String(c).trim() !== '').join(', ') 
+        : String(payload.cidList || '');
+
       sheet.getRange(existingRowIndex, 13, 1, 5).setValues([[
         "'" + timeStr,
         statusOut,
         coordStr,
         mapsUrl,
         photoUrl
+      ]]);
+
+      sheet.getRange(existingRowIndex, 22, 1, 6).setValues([[
+        stasiunOutStr,
+        visitKemanaOut,
+        aktualWo,
+        aktualHc,
+        pendingWo,
+        cidListStr
       ]]);
 
       return { 
@@ -563,15 +654,25 @@ function getAdminDashboardData(filterDate) {
       provinsi: String(absenData[i][5]),
       stasiun: String(absenData[i][6]),
       jamIn: jamInStr,
-      statusIn: String(absenData[i][8]),
-      koordinatIn: String(absenData[i][9]),
-      mapsIn: String(absenData[i][10]),
-      fotoIn: String(absenData[i][11]),
+      statusIn: String(absenData[i][8] || ''),
+      koordinatIn: String(absenData[i][9] || ''),
+      mapsIn: String(absenData[i][10] || ''),
+      fotoIn: String(absenData[i][11] || ''),
       jamOut: jamOutStr,
       statusOut: jamOutStr ? 'Completed' : 'Belum Clock-Out',
-      koordinatOut: String(absenData[i][14]),
-      mapsOut: String(absenData[i][15]),
-      fotoOut: String(absenData[i][16])
+      koordinatOut: String(absenData[i][14] || ''),
+      mapsOut: String(absenData[i][15] || ''),
+      fotoOut: String(absenData[i][16] || ''),
+      stasiunIn: String(absenData[i][17] || ''),
+      targetVisit: formatNumberOrBlank_(absenData[i][18]),
+      visitKemanaIn: String(absenData[i][19] || ''),
+      targetClosingHc: formatNumberOrBlank_(absenData[i][20]),
+      stasiunOut: String(absenData[i][21] || ''),
+      visitKemanaOut: String(absenData[i][22] || ''),
+      aktualWo: formatNumberOrBlank_(absenData[i][23]),
+      aktualHc: formatNumberOrBlank_(absenData[i][24]),
+      pendingWo: formatNumberOrBlank_(absenData[i][25]),
+      cidList: String(absenData[i][26] || '')
     };
 
     allLogs.push(logItem);
@@ -582,6 +683,7 @@ function getAdminDashboardData(filterDate) {
 
   const attendedUsernamesToday = todayLogs.map(l => l.username.toLowerCase());
   const belumAbsenList = salesOnlyList.filter(s => !attendedUsernamesToday.includes(s.username.toLowerCase()));
+  const stationsList = getStationsData_();
 
   return {
     selectedDate: todayStr,
@@ -590,11 +692,112 @@ function getAdminDashboardData(filterDate) {
     salesOnly: salesOnlyList,
     todayLogs: todayLogs,
     allLogs: allLogs,
-    belumAbsen: belumAbsenList
+    belumAbsen: belumAbsenList,
+    stations: stationsList
   };
 }
 
-function saveUserAdmin(userObj) {
+function getStationsData() {
+  setupCheck_();
+  return getStationsData_();
+}
+
+function getStationsData_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const stasiunSheet = ss.getSheetByName('STASIUN');
+  if (!stasiunSheet) return [];
+  const stData = stasiunSheet.getDataRange().getValues();
+  let stationsList = [];
+  for (let s = 1; s < stData.length; s++) {
+    if (!stData[s][0]) continue;
+    stationsList.push({
+      id: String(stData[s][0]),
+      kota: String(stData[s][1]),
+      namaStasiun: String(stData[s][2]),
+      updatedAt: stData[s][3] ? formatRowDate_(stData[s][3]) : ''
+    });
+  }
+  return stationsList;
+}
+
+function saveStationAdmin(stationObj, callerRole) {
+  if (String(callerRole || '').toLowerCase() !== 'admin') {
+    return { success: false, message: 'Akses Ditolak: Hanya Admin yang dapat mengelola database stasiun.' };
+  }
+  setupCheck_();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('STASIUN');
+  if (!sheet) {
+    return { success: false, message: 'Sheet STASIUN tidak ditemukan.' };
+  }
+
+  const kota = String(stationObj.kota || '').trim();
+  const namaStasiun = String(stationObj.namaStasiun || '').trim();
+  if (!kota || !namaStasiun) {
+    return { success: false, message: 'Kota dan Nama Stasiun wajib diisi.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+  if (stationObj.id) {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(stationObj.id)) {
+        sheet.getRange(i + 1, 2, 1, 3).setValues([[kota, namaStasiun, nowStr]]);
+        return { 
+          success: true, 
+          message: `Data stasiun "${namaStasiun}" berhasil diperbarui.`,
+          stations: getStationsData_()
+        };
+      }
+    }
+    return { success: false, message: 'Data stasiun tidak ditemukan.' };
+  } else {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][2]).toLowerCase().trim() === namaStasiun.toLowerCase()) {
+        return { success: false, message: `Stasiun "${namaStasiun}" sudah ada di database.` };
+      }
+    }
+    const newId = 'STN-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyMMddHHmmss');
+    sheet.appendRow([newId, kota, namaStasiun, nowStr]);
+    return { 
+      success: true, 
+      message: `Stasiun "${namaStasiun}" (${kota}) berhasil ditambahkan.`,
+      stations: getStationsData_()
+    };
+  }
+}
+
+function deleteStationAdmin(stationId, callerRole) {
+  if (String(callerRole || '').toLowerCase() !== 'admin') {
+    return { success: false, message: 'Akses Ditolak: Hanya Admin yang dapat menghapus stasiun.' };
+  }
+  setupCheck_();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('STASIUN');
+  if (!sheet) {
+    return { success: false, message: 'Sheet STASIUN tidak ditemukan.' };
+  }
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(stationId)) {
+      const stnName = String(data[i][2]);
+      sheet.deleteRow(i + 1);
+      return { 
+        success: true, 
+        message: `Stasiun "${stnName}" berhasil dihapus.`,
+        stations: getStationsData_()
+      };
+    }
+  }
+  return { success: false, message: 'Data stasiun tidak ditemukan.' };
+}
+
+function saveUserAdmin(userObj, callerRole) {
+  const role = String(callerRole || '').toLowerCase();
+  if (role === 'controller' || role === 'site manager') {
+    return { success: false, message: 'Akses Ditolak: Role ' + (callerRole || 'ini') + ' tidak diizinkan menambah atau mengubah akun.' };
+  }
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('USERS');
   const absenSheet = ss.getSheetByName('ABSENSI');
@@ -669,7 +872,11 @@ function saveUserAdmin(userObj) {
  * 3. Hapus Folder Nama Sales beserta sub-folder tanggalnya di Google Drive
  * 4. Hapus semua baris riwayat absensi milik user di Sheet ABSENSI
  */
-function deleteUserAdmin(userId) {
+function deleteUserAdmin(userId, callerRole) {
+  const role = String(callerRole || '').toLowerCase();
+  if (role === 'controller' || role === 'site manager') {
+    return { success: false, message: 'Akses Ditolak: Role ' + (callerRole || 'ini') + ' tidak diizinkan menghapus akun.' };
+  }
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userSheet = ss.getSheetByName('USERS');
   const absenSheet = ss.getSheetByName('ABSENSI');
@@ -745,4 +952,10 @@ function formatHHMM_(val) {
     return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
   }
   return s;
+}
+
+function formatNumberOrBlank_(val) {
+  if (val === '' || val === null || val === undefined) return '';
+  const n = Number(val);
+  return isNaN(n) ? String(val) : n;
 }

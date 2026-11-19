@@ -1,37 +1,39 @@
-<!-- ================= ADMIN VIEW (COMPACT TIIMI DASHBOARD) ================= -->
-<div id="adminView" class="hidden space-y-3">
+<!-- ================= ADMIN VIEW (VANTUS ERP STYLE: CLEAN, AIRY & FULLY LEGIBLE) ================= -->
+<div id="adminView" class="hidden space-y-5">
 
-    <!-- Mobile Tab Switcher -->
-    <div class="flex md:hidden gap-1 overflow-x-auto pb-1">
+    <!-- Mobile Tab Switcher (Modern Scrollable Pills with Full Text) -->
+    <div class="flex md:hidden gap-1.5 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
         <button onclick="switchAdminTab('tabMonitoring')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Harian</button>
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Attendance Harian</button>
         <button onclick="switchAdminTab('tabBelumAbsen')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-rose-600 shrink-0">Belum Absen</button>
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-rose-600 shrink-0 shadow-2xs">Belum Clock-In</button>
         <button onclick="switchAdminTab('tabSummary')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-amber-600 shrink-0">Rekap Tanggal</button>
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-amber-700 shrink-0 shadow-2xs">Rekap Akumulasi</button>
         <button onclick="switchAdminTab('tabAllLogs')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Semua Data</button>
-        <button onclick="switchAdminTab('tabUsers')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shrink-0">Kelola Akun</button>
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Semua Database</button>
+        <button id="mobileTabBtn_tabUsers" onclick="switchAdminTab('tabUsers')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Kelola Akun Personel</button>
+        <button id="mobileTabBtn_tabStations" onclick="switchAdminTab('tabStations')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-sky-700 shrink-0 shadow-2xs">Database Stasiun</button>
         <button onclick="switchAdminTab('tabSettings')"
-            class="px-2.5 py-1 rounded text-[11px] font-bold bg-white border border-slate-200 text-teal-700 shrink-0">Jam Kerja</button>
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-sky-700 shrink-0 shadow-2xs">Pengaturan Jam Kerja</button>
     </div>
 
-    <!-- TIIMI TOP TITLE & DATE STEPPER BAR -->
-    <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5">
-            <h1 id="adminPageTitle" class="text-base font-extrabold text-slate-900 tracking-tight">Attendance Harian</h1>
+    <!-- VANTUS TOP ACTION & DATE STEPPER BAR -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <h1 id="adminPageTitle" class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Attendance Harian</h1>
 
-            <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm px-1 py-0.5">
+            <div class="flex items-center bg-white border border-slate-200/90 rounded-xl shadow-2xs px-2 py-1">
                 <button onclick="stepAdminDate(-1)"
-                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
-                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-chevron-left text-[11px]"></i>
                 </button>
                 <input type="date" id="adminDateFilter" onchange="onHeaderDateChange()"
-                    class="px-1.5 py-0.5 text-[11.5px] font-bold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
+                    class="px-2 py-0.5 text-xs font-extrabold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
                 <button onclick="stepAdminDate(1)"
-                    class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100">
-                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-chevron-right text-[11px]"></i>
                 </button>
             </div>
         </div>
@@ -39,104 +41,105 @@
         <!-- Right Action Buttons -->
         <div class="flex items-center gap-2">
             <button onclick="switchAdminTab('tabSettings')"
-                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1.5">
-                <i class="fa-regular fa-clock text-teal-600"></i>
-                <span>In: <strong id="headerBadgeMaxIn">09:00</strong> | Out: <strong id="headerBadgeMinOut">18:00</strong></span>
+                class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
+                <i class="fa-regular fa-clock text-sky-600"></i>
+                <span>Clock-In: <strong id="headerBadgeMaxIn">09:00</strong> | Clock-Out: <strong id="headerBadgeMinOut">18:00</strong></span>
             </button>
             <button onclick="loadAdminData()"
-                class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+                class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
                 <i class="fa-solid fa-rotate text-slate-500"></i>
-                <span>Refresh</span>
+                <span>Refresh Data</span>
             </button>
-            <button onclick="switchAdminTab('tabUsers')"
-                class="px-2.5 py-1.5 bg-[#0f766e] hover:bg-[#115e59] text-white rounded-lg text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+            <button id="btnHeaderTambahSales" onclick="switchAdminTab('tabUsers')"
+                class="px-4 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-xl text-xs font-bold shadow-sm shadow-sky-500/20 transition flex items-center gap-1.5">
                 <i class="fa-solid fa-user-plus"></i>
-                <span>Tambah Sales</span>
+                <span>Tambah Personel Sales</span>
             </button>
         </div>
     </div>
 
-    <!-- TIIMI COMPACT GROUPED SUMMARY CARDS (Harian Tanggal Terpilih) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <!-- VANTUS GROUPED SUMMARY CARDS (Bersih, Rapi, Lapang & Tanpa Singkatan) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
         <!-- Present Summary -->
-        <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
-            <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-clipboard-check text-teal-600"></i> Present Summary (<span class="lblSelectedDate"></span>)
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clipboard-check text-sky-600"></i> Ringkasan Kehadiran Harian (<span class="lblSelectedDate"></span>)
                 </span>
             </div>
-            <div class="grid grid-cols-3 divide-x divide-slate-100">
+            <div class="grid grid-cols-3 divide-x divide-slate-100 pt-1">
                 <div class="pr-3">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">On Time</p>
-                    <p id="kpiOnTime" class="text-lg font-extrabold text-teal-600 leading-tight">0</p>
-                    <p class="text-[10px] text-slate-400">≤ <span id="subLabelMaxIn">09:00</span></p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tepat Waktu</p>
+                    <p id="kpiOnTime" class="text-xl sm:text-2xl font-extrabold text-emerald-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Maks. Pukul <span id="subLabelMaxIn">09:00</span></p>
                 </div>
                 <div class="px-3">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Late Clock-In</p>
-                    <p id="kpiLate" class="text-lg font-extrabold text-amber-600 leading-tight">0</p>
-                    <p class="text-[10px] text-slate-400">> <span id="subLabelLateIn">09:00</span></p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Terlambat Masuk</p>
+                    <p id="kpiLate" class="text-xl sm:text-2xl font-extrabold text-amber-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Lewat Pukul <span id="subLabelLateIn">09:00</span></p>
                 </div>
                 <div class="pl-3">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Lengkap (In & Out)</p>
-                    <p id="kpiClockedOut" class="text-lg font-extrabold text-slate-900 leading-tight">0</p>
-                    <p class="text-[10px] text-slate-400">Sudah Clock-Out</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lengkap</p>
+                    <p id="kpiClockedOut" class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Masuk & Pulang</p>
                 </div>
             </div>
         </div>
 
         <!-- Not Present Summary -->
-        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
-            <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-user-xmark text-rose-600"></i> Not Present / Incomplete
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-xmark text-rose-600"></i> Belum Melakukan Absensi
                 </span>
                 <button onclick="switchAdminTab('tabBelumAbsen')"
-                    class="text-[10px] text-teal-600 font-bold hover:underline">Cek Daftar</button>
+                    class="text-[11px] text-sky-700 font-bold hover:underline">Lihat Daftar Lengkap</button>
             </div>
-            <div class="grid grid-cols-2 divide-x divide-slate-100">
+            <div class="grid grid-cols-2 divide-x divide-slate-100 pt-1">
                 <div class="pr-3">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-In</p>
-                    <p id="kpiBelumAbsen" class="text-lg font-extrabold text-rose-600 leading-tight">0</p>
-                    <p class="text-[10px] text-rose-500">Belum absen masuk</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Belum Clock-In</p>
+                    <p id="kpiBelumAbsen" class="text-xl sm:text-2xl font-extrabold text-rose-600 leading-tight">0</p>
+                    <p class="text-[10px] text-rose-500 mt-0.5">Belum absen masuk</p>
                 </div>
                 <div class="pl-3">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Belum Clock-Out</p>
-                    <p id="kpiBelumOut" class="text-lg font-extrabold text-indigo-600 leading-tight">0</p>
-                    <p class="text-[10px] text-slate-400">Sudah In, Belum Out</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Belum Clock-Out</p>
+                    <p id="kpiBelumOut" class="text-xl sm:text-2xl font-extrabold text-indigo-600 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Sudah masuk, belum pulang</p>
                 </div>
             </div>
         </div>
 
         <!-- Workforce Ratio -->
-        <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 shadow-sm">
-            <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-pie text-indigo-600"></i> Rasio Kehadiran Aktif
+        <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-indigo-600"></i> Statistik Kehadiran
                 </span>
             </div>
-            <div class="grid grid-cols-2 divide-x divide-slate-100">
+            <div class="grid grid-cols-2 divide-x divide-slate-100 pt-1">
                 <div class="pr-2">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Sales Aktif</p>
-                    <p id="kpiTotalSales" class="text-lg font-extrabold text-slate-900 leading-tight">0</p>
-                    <p class="text-[10px] text-slate-400">Terdaftar</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sales Terdaftar</p>
+                    <p id="kpiTotalSales" class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Personel aktif</p>
                 </div>
                 <div class="pl-2">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Rasio Hadir</p>
-                    <p id="kpiAttendanceRate" class="text-lg font-extrabold text-teal-600 leading-tight">0%</p>
-                    <p class="text-[10px] text-slate-400">Dari total sales</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Persentase Hadir</p>
+                    <p id="kpiAttendanceRate" class="text-xl sm:text-2xl font-extrabold text-sky-700 leading-tight">0%</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Hari ini</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ================= TAB 1: MONITORING HARIAN ================= -->
-    <div id="tabMonitoring" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+    <div id="tabMonitoring" class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Absensi Masuk & Pulang (<span class="lblSelectedDate"></span>)</h3>
-                <span class="text-[10.5px] text-slate-400">• 30 data/halaman</span>
+                <div class="w-2.5 h-2.5 rounded-full bg-sky-500"></div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Daftar Kehadiran Personel Harian (<span class="lblSelectedDate"></span>)</h3>
+                <span class="text-[11px] text-slate-400 font-medium">• 30 data per halaman</span>
             </div>
-            <button onclick="resetTableFilters('todayLogs')" class="text-[11px] text-teal-600 hover:underline font-semibold">
+            <button onclick="resetTableFilters('todayLogs')" class="text-xs text-sky-700 hover:text-sky-800 font-semibold transition">
                 <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
             </button>
         </div>
@@ -145,16 +148,17 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th class="tiimi-th">Nama Sales</th>
-                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Nama Personel Sales</th>
+                        <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
-                        <th class="tiimi-th">Stasiun</th>
-                        <th class="tiimi-th">Clock-in & Out</th>
-                        <th class="tiimi-th">Status In</th>
-                        <th class="tiimi-th">Status Out</th>
-                        <th class="tiimi-th">Foto</th>
-                        <th class="tiimi-th">Lokasi (Maps)</th>
-                        <th class="tiimi-th text-center">Detail</th>
+                        <th class="tiimi-th">Stasiun & Wilayah Kunjungan</th>
+                        <th class="tiimi-th">Target vs Realisasi (Work Order & Head Count)</th>
+                        <th class="tiimi-th">Waktu Clock-In & Clock-Out</th>
+                        <th class="tiimi-th">Status Masuk</th>
+                        <th class="tiimi-th">Status Pulang</th>
+                        <th class="tiimi-th">Foto Bukti</th>
+                        <th class="tiimi-th">Lokasi Koordinat & Peta</th>
+                        <th class="tiimi-th text-center">Detail Personel</th>
                     </tr>
                     <tr>
                         <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_nama"
@@ -175,6 +179,7 @@
                         <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_stasiun"
                                 oninput="updateTableFilter('todayLogs', 'stasiun', this.value)"
                                 placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
                         <th class="tiimi-filter-cell"><input type="text" id="flt_todayLogs_jamIn"
                                 oninput="updateTableFilter('todayLogs', 'jamIn', this.value)"
                                 placeholder="Jam..." class="tiimi-filter-input"></th>
@@ -183,8 +188,8 @@
                                 onchange="updateTableFilter('todayLogs', 'statusIn', this.value)"
                                 class="tiimi-filter-input">
                                 <option value="">Semua</option>
-                                <option value="On Time">On Time</option>
-                                <option value="Late">Late</option>
+                                <option value="On Time">Tepat Waktu</option>
+                                <option value="Late">Terlambat</option>
                             </select>
                         </th>
                         <th class="tiimi-filter-cell">
@@ -192,8 +197,8 @@
                                 onchange="updateTableFilter('todayLogs', 'statusOut', this.value)"
                                 class="tiimi-filter-input">
                                 <option value="">Semua</option>
-                                <option value="Completed">Lengkap (Out)</option>
-                                <option value="Belum Clock-Out">Belum Out</option>
+                                <option value="Completed">Selesai Clock-Out</option>
+                                <option value="Belum Clock-Out">Belum Clock-Out</option>
                             </select>
                         </th>
                         <th class="tiimi-filter-cell"></th>
@@ -207,29 +212,29 @@
             </table>
         </div>
         <div id="pager_todayLogs"
-            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
         </div>
     </div>
 
     <!-- ================= TAB 2: DAFTAR SALES BELUM CLOCK-IN ================= -->
-    <div id="tabBelumAbsen" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+    <div id="tabBelumAbsen" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Daftar Sales Belum Clock-In Pada Tanggal <span class="lblSelectedDate text-rose-600"></span></h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Daftar Personel Sales Belum Clock-In (<span class="lblSelectedDate text-rose-600"></span>)</h3>
             </div>
-            <button onclick="resetTableFilters('belumAbsen')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter</button>
+            <button onclick="resetTableFilters('belumAbsen')" class="text-xs text-sky-700 hover:text-sky-800 font-semibold transition">Reset Filter</button>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th class="tiimi-th">Nama Sales</th>
-                        <th class="tiimi-th">Username</th>
-                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Nama Personel Sales</th>
+                        <th class="tiimi-th">Username Sistem</th>
+                        <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
-                        <th class="tiimi-th">Stasiun</th>
-                        <th class="tiimi-th">Keterangan Hari Ini</th>
+                        <th class="tiimi-th">Stasiun Penugasan</th>
+                        <th class="tiimi-th">Status Kehadiran Hari Ini</th>
                         <th class="tiimi-th text-center">Riwayat Personel</th>
                     </tr>
                     <tr>
@@ -261,31 +266,31 @@
                 <tbody id="tbody_belumAbsen"></tbody>
             </table>
         </div>
-        <div id="pager_belumAbsen" class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]"></div>
+        <div id="pager_belumAbsen" class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs"></div>
     </div>
 
     <!-- ================= TAB 3: REKAP AKUMULASI KEHADIRAN PER TANGGAL ================= -->
-    <div id="tabSummary" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+    <div id="tabSummary" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
             <div>
-                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-800">Database Akumulasi Kehadiran Per Tanggal / Periode</h3>
-                <p class="text-[10.5px] text-slate-500">Pilih tanggal awal & akhir untuk melihat akumulasi Belum Clock-In, On Time, Late, Belum Clock-Out, dan Lengkap (In+Out).</p>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Database Akumulasi Kehadiran & Capaian Periode</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Pilih tanggal awal & akhir untuk melihat total Hadir Tepat Waktu, Terlambat, Target vs Realisasi Work Order & Head Count.</p>
             </div>
 
             <!-- Filter Rentang Tanggal Akumulasi -->
-            <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[10.5px] font-semibold text-slate-600">Periode:</span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold text-slate-600">Periode:</span>
                 <input type="date" id="sumStartDate" onchange="recalculateSummaryByDateRange()"
-                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                    class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
                 <span class="text-slate-400">s/d</span>
                 <input type="date" id="sumEndDate" onchange="recalculateSummaryByDateRange()"
-                    class="px-2 py-1 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-800">
+                    class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
                 <button onclick="setSummaryRangeAllTime()"
-                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10.5px] font-semibold transition">
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
                     Semua Tanggal
                 </button>
                 <button onclick="resetTableFilters('summary')"
-                    class="px-2 py-1 text-teal-600 hover:underline text-[10.5px] font-semibold">
+                    class="px-3 py-1.5 text-sky-700 hover:underline text-xs font-semibold">
                     Reset Filter
                 </button>
             </div>
@@ -295,17 +300,19 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th class="tiimi-th">Nama Sales</th>
-                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Nama Personel Sales</th>
+                        <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
-                        <th class="tiimi-th">Stasiun</th>
+                        <th class="tiimi-th">Stasiun Penugasan</th>
                         <th class="tiimi-th text-center">Belum Clock-In</th>
-                        <th class="tiimi-th text-center">Total Hadir (In)</th>
-                        <th class="tiimi-th text-center">On Time</th>
-                        <th class="tiimi-th text-center">Late</th>
+                        <th class="tiimi-th text-center">Total Hadir (Masuk)</th>
+                        <th class="tiimi-th text-center">Hadir Tepat Waktu</th>
+                        <th class="tiimi-th text-center">Hadir Terlambat</th>
                         <th class="tiimi-th text-center">Belum Clock-Out</th>
-                        <th class="tiimi-th text-center">Lengkap (In & Out)</th>
-                        <th class="tiimi-th text-center">Detail</th>
+                        <th class="tiimi-th text-center">Selesai Clock-Out (Lengkap)</th>
+                        <th class="tiimi-th text-center">Target & Realisasi Work Order</th>
+                        <th class="tiimi-th text-center">Target & Realisasi Closing Head Count</th>
+                        <th class="tiimi-th text-center">Detail Personel</th>
                     </tr>
                     <tr>
                         <th class="tiimi-filter-cell"><input type="text" id="flt_summary_nama"
@@ -345,37 +352,40 @@
                                 oninput="updateTableFilter('summary', 'totalLengkap', this.value)"
                                 placeholder="Jml..." class="tiimi-filter-input text-center"></th>
                         <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell"></th>
                     </tr>
                 </thead>
                 <tbody id="tbody_summary"></tbody>
             </table>
         </div>
         <div id="pager_summary"
-            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
         </div>
     </div>
 
     <!-- ================= TAB 4: SEMUA DATABASE ABSENSI ================= -->
-    <div id="tabAllLogs" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Seluruh Riwayat Database Absensi (All Records)</h3>
-            <button onclick="resetTableFilters('allLogs')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter Kolom</button>
+    <div id="tabAllLogs" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Seluruh Riwayat Database Absensi (All Records)</h3>
+            <button onclick="resetTableFilters('allLogs')" class="text-xs text-sky-700 hover:underline font-semibold">Reset Filter Kolom</button>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th class="tiimi-th">Tanggal</th>
-                        <th class="tiimi-th">Nama Sales</th>
-                        <th class="tiimi-th">Status</th>
+                        <th class="tiimi-th">Tanggal Presensi</th>
+                        <th class="tiimi-th">Nama Personel Sales</th>
+                        <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
-                        <th class="tiimi-th">Stasiun</th>
-                        <th class="tiimi-th">Clock-in & Out</th>
-                        <th class="tiimi-th">Status In</th>
-                        <th class="tiimi-th">Status Out</th>
-                        <th class="tiimi-th">Foto</th>
-                        <th class="tiimi-th">Lokasi (Maps)</th>
-                        <th class="tiimi-th text-center">Detail</th>
+                        <th class="tiimi-th">Stasiun & Wilayah Kunjungan</th>
+                        <th class="tiimi-th">Target vs Realisasi (Work Order & Head Count)</th>
+                        <th class="tiimi-th">Waktu Clock-In & Clock-Out</th>
+                        <th class="tiimi-th">Status Masuk</th>
+                        <th class="tiimi-th">Status Pulang</th>
+                        <th class="tiimi-th">Foto Bukti</th>
+                        <th class="tiimi-th">Lokasi Koordinat & Peta</th>
+                        <th class="tiimi-th text-center">Detail Personel</th>
                     </tr>
                     <tr>
                         <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_tanggal"
@@ -399,6 +409,7 @@
                         <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_stasiun"
                                 oninput="updateTableFilter('allLogs', 'stasiun', this.value)"
                                 placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
                         <th class="tiimi-filter-cell"><input type="text" id="flt_allLogs_jamIn"
                                 oninput="updateTableFilter('allLogs', 'jamIn', this.value)"
                                 placeholder="Jam..." class="tiimi-filter-input"></th>
@@ -407,8 +418,8 @@
                                 onchange="updateTableFilter('allLogs', 'statusIn', this.value)"
                                 class="tiimi-filter-input">
                                 <option value="">Semua</option>
-                                <option value="On Time">On Time</option>
-                                <option value="Late">Late</option>
+                                <option value="On Time">Tepat Waktu</option>
+                                <option value="Late">Terlambat</option>
                             </select>
                         </th>
                         <th class="tiimi-filter-cell">
@@ -416,8 +427,8 @@
                                 onchange="updateTableFilter('allLogs', 'statusOut', this.value)"
                                 class="tiimi-filter-input">
                                 <option value="">Semua</option>
-                                <option value="Completed">Lengkap (Out)</option>
-                                <option value="Belum Clock-Out">Belum Out</option>
+                                <option value="Completed">Selesai Clock-Out</option>
+                                <option value="Belum Clock-Out">Belum Clock-Out</option>
                             </select>
                         </th>
                         <th class="tiimi-filter-cell"></th>
@@ -431,90 +442,93 @@
             </table>
         </div>
         <div id="pager_allLogs"
-            class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
         </div>
     </div>
 
     <!-- ================= TAB 5: KELOLA AKUN SALES (CRUD + TOMBOL DETAIL + CASCADE DELETE) ================= -->
-    <div id="tabUsers" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm h-fit space-y-3">
-            <h3 id="formUserTitle" class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2">Tambah User / Sales Baru</h3>
-            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-2.5 text-[11.5px]">
+    <div id="tabUsers" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs h-fit space-y-4">
+            <h3 id="formUserTitle" class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5">Tambah Personel Sales / Pengguna Baru</h3>
+            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-3 text-xs">
                 <input type="hidden" id="usrId">
                 <div>
-                    <label class="text-slate-600 font-semibold block mb-0.5">Nama Lengkap Sales</label>
+                    <label class="text-slate-600 font-semibold block mb-1">Nama Lengkap Personel</label>
                     <input type="text" id="usrNama" required placeholder="Contoh: Bagus Fikri"
-                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="text-slate-600 font-semibold block mb-0.5">Username Login</label>
+                        <label class="text-slate-600 font-semibold block mb-1">Username Login</label>
                         <input type="text" id="usrUsername" required placeholder="bagus01"
-                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                     </div>
                     <div>
-                        <label class="text-slate-600 font-semibold block mb-0.5">Password</label>
+                        <label class="text-slate-600 font-semibold block mb-1">Password</label>
                         <input type="text" id="usrPassword" required placeholder="Min. 4 karakter"
-                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="text-slate-600 font-semibold block mb-0.5">Role Sistem</label>
+                        <label class="text-slate-600 font-semibold block mb-1">Role Sistem</label>
                         <select id="usrRole"
-                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                             <option value="Sales">Sales</option>
                             <option value="Admin">Admin</option>
+                            <option value="Controller">Controller</option>
+                            <option value="Site Manager">Site Manager</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-slate-600 font-semibold block mb-0.5">Status Kontrak</label>
+                        <label class="text-slate-600 font-semibold block mb-1">Status Kontrak</label>
                         <select id="usrStatus"
-                            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800">
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                             <option value="Inhouse">Inhouse</option>
                             <option value="Freelance">Freelance</option>
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="text-slate-600 font-semibold block mb-0.5">Provinsi</label>
+                    <label class="text-slate-600 font-semibold block mb-1">Provinsi Penugasan</label>
                     <input type="text" id="usrProvinsi" required placeholder="Contoh: Jawa Barat"
-                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
                 </div>
                 <div>
-                    <label class="text-slate-600 font-semibold block mb-0.5">Stasiun / Titik Penugasan</label>
-                    <input type="text" id="usrStasiun" required placeholder="Contoh: Stasiun Bandung"
-                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:bg-white focus:border-teal-600 focus:outline-none">
+                    <label class="text-slate-600 font-semibold block mb-1">Stasiun Pangkalan / Penugasan</label>
+                    <input type="text" id="usrStasiun" list="stationOptionsList" oninput="onUserStationInput(this.value)" required placeholder="Pilih / ketik nama stasiun..."
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
+                    <datalist id="stationOptionsList"></datalist>
                 </div>
-                <div class="flex gap-2 pt-1.5">
+                <div class="flex gap-2.5 pt-2">
                     <button type="submit"
-                        class="flex-1 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold rounded-lg transition">
-                        <i class="fa-solid fa-check mr-1"></i> Simpan Akun
+                        class="flex-1 py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20">
+                        <i class="fa-solid fa-check mr-1"></i> Simpan Data Akun
                     </button>
                     <button type="button" onclick="resetUserForm()"
-                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
+                        class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
                         Batal
                     </button>
                 </div>
             </form>
         </div>
 
-        <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-            <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Database Akun Sales & Admin</h3>
-                <button onclick="resetTableFilters('users')" class="text-[11px] text-teal-600 hover:underline font-semibold">Reset Filter</button>
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Database Akun Personel & Administrator</h3>
+                <button onclick="resetTableFilters('users')" class="text-xs text-sky-700 hover:underline font-semibold">Reset Filter</button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr>
-                            <th class="tiimi-th">Nama Personel</th>
-                            <th class="tiimi-th">Username & Pass</th>
-                            <th class="tiimi-th">Role</th>
-                            <th class="tiimi-th">Status</th>
+                            <th class="tiimi-th">Nama Personel Lengkap</th>
+                            <th class="tiimi-th">Username & Password</th>
+                            <th class="tiimi-th">Role Sistem</th>
+                            <th class="tiimi-th">Status Kontrak</th>
                             <th class="tiimi-th">Provinsi</th>
-                            <th class="tiimi-th">Stasiun</th>
-                            <th class="tiimi-th text-center">Detail & Aksi</th>
+                            <th class="tiimi-th">Stasiun Penugasan</th>
+                            <th class="tiimi-th text-center">Detail Riwayat & Aksi</th>
                         </tr>
                         <tr>
                             <th class="tiimi-filter-cell"><input type="text" id="flt_users_nama"
@@ -530,6 +544,8 @@
                                     <option value="">Semua</option>
                                     <option value="Sales">Sales</option>
                                     <option value="Admin">Admin</option>
+                                    <option value="Controller">Controller</option>
+                                    <option value="Site Manager">Site Manager</option>
                                 </select>
                             </th>
                             <th class="tiimi-filter-cell">
@@ -554,47 +570,125 @@
                 </table>
             </div>
             <div id="pager_users"
-                class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
             </div>
         </div>
     </div>
 
     <!-- ================= TAB 6: PENGATURAN JAM KERJA DINAMIS ================= -->
-    <div id="tabSettings" class="hidden max-w-lg mx-auto">
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+    <div id="tabSettings" class="hidden max-w-xl mx-auto">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 space-y-5">
             <div class="flex items-start justify-between border-b border-slate-100 pb-3">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900">Pengaturan Batas Jam Absensi</h3>
-                    <p class="text-[11px] text-slate-500 mt-0.5">Ubah batas jam keterlambatan Clock-In dan jam minimal Clock-Out.</p>
+                    <h3 class="text-sm font-bold text-slate-900">Pengaturan Batas Waktu Presensi Harian</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Tentukan batas jam toleransi keterlambatan Clock-In dan waktu tercepat Clock-Out.</p>
                 </div>
-                <span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-bold text-[10px] border border-teal-200">Admin Only</span>
+                <span class="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">Admin Only</span>
             </div>
 
-            <form onsubmit="handleSaveSettings(event)" class="space-y-3.5">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Batas Jam Clock-In (On Time)</label>
+            <form onsubmit="handleSaveSettings(event)" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Batas Waktu Clock-In (Tepat Waktu)</label>
                         <input type="time" id="setMaxClockIn" required
-                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
-                        <p class="text-[10.5px] text-slate-500">Lewat dari jam ini otomatis berstatus <strong class="text-amber-600">Late</strong>.</p>
+                            class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-sky-600 shadow-2xs">
+                        <p class="text-[11px] text-slate-500">Clock-In melewati jam ini otomatis berstatus <strong class="text-amber-600">Terlambat</strong>.</p>
                     </div>
 
-                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <label class="block text-[11px] font-bold text-slate-700 uppercase">Minimal Jam Clock-Out</label>
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Waktu Minimal Clock-Out (Pulang)</label>
                         <input type="time" id="setMinClockOut" required
-                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-teal-600">
-                        <p class="text-[10.5px] text-slate-500">Sales wajib Clock-In dulu & baru bisa Clock-Out minimal jam ini.</p>
+                            class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono-code text-sm font-bold text-slate-900 focus:outline-none focus:border-sky-600 shadow-2xs">
+                        <p class="text-[11px] text-slate-500">Sales hanya diperkenankan Clock-Out setelah mencapai jam ini.</p>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end pt-1">
+                <div class="flex items-center justify-end pt-2">
                     <button type="submit"
-                        class="px-4 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        class="px-5 py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold rounded-xl shadow-sm shadow-sky-500/20 transition flex items-center gap-1.5">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Simpan Pengaturan</span>
+                        <span>Simpan Pengaturan Waktu</span>
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ================= TAB 7: KELOLA DATABASE STASIUN (ADMIN ONLY) ================= -->
+    <div id="tabStations" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Form Tambah/Edit Stasiun -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs h-fit space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <h3 id="formStationTitle" class="text-xs font-bold text-slate-800">Tambah Stasiun Baru</h3>
+                <span class="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">Admin Only</span>
+            </div>
+            <form id="stationForm" onsubmit="handleSaveStation(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="stnId">
+                <div>
+                    <label class="text-slate-600 font-semibold block mb-1">Kota / Wilayah Penugasan</label>
+                    <input type="text" id="stnKota" required placeholder="Contoh: Bandung, Jakarta, dll."
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="text-slate-600 font-semibold block mb-1">Nama Stasiun Lengkap</label>
+                    <input type="text" id="stnNama" required placeholder="Contoh: Stasiun Bandung, Stasiun Gambir"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
+                </div>
+                <div class="flex gap-2.5 pt-2">
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-check text-xs"></i>
+                        <span>Simpan Data Stasiun</span>
+                    </button>
+                    <button type="button" onclick="resetStationForm()"
+                        class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabel Database Stasiun -->
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Master Data Stasiun & Kota</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Daftar stasiun dan titik penugasan resmi sales</p>
+                </div>
+                <button onclick="resetTableFilters('stations')" class="text-xs text-sky-700 hover:underline font-semibold">
+                    <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="tiimi-th w-28">ID Stasiun</th>
+                            <th class="tiimi-th">Kota / Wilayah</th>
+                            <th class="tiimi-th">Nama Stasiun</th>
+                            <th class="tiimi-th text-center w-28">Aksi</th>
+                        </tr>
+                        <tr>
+                            <th class="tiimi-filter-cell"></th>
+                            <th class="tiimi-filter-cell">
+                                <input type="text" id="flt_stations_kota"
+                                    oninput="updateTableFilter('stations', 'kota', this.value)"
+                                    placeholder="Filter kota..." class="tiimi-filter-input">
+                            </th>
+                            <th class="tiimi-filter-cell">
+                                <input type="text" id="flt_stations_namaStasiun"
+                                    oninput="updateTableFilter('stations', 'namaStasiun', this.value)"
+                                    placeholder="Filter nama stasiun..." class="tiimi-filter-input">
+                            </th>
+                            <th class="tiimi-filter-cell"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_stations"></tbody>
+                </table>
+            </div>
+            <div id="pager_stations"
+                class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            </div>
         </div>
     </div>
 

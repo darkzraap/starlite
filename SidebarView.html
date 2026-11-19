@@ -1,36 +1,100 @@
-<!-- LEFT SLIM ICON SIDEBAR (ADMIN ONLY - w-11) -->
+<!-- MOBILE BACKDROP OVERLAY -->
+<div id="mobileSidebarBackdrop" onclick="toggleMobileSidebar(false)"
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 hidden md:hidden transition-opacity"></div>
+
+<!-- LEFT FULL SIDEBAR (VANTUS ERP STYLE - w-64) -->
 <aside id="adminLeftSidebar"
-    class="hidden sm:flex flex-col items-center py-3 w-11 bg-white border-r border-slate-200 shrink-0 justify-between">
-    <div class="flex flex-col items-center gap-2">
-        <button onclick="switchAdminTab('tabMonitoring')" id="sideBtn_tabMonitoring"
-            title="Attendance Harian"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-teal-700 bg-teal-50 transition">
-            <i class="fa-solid fa-calendar-check text-xs"></i>
-        </button>
-        <button onclick="switchAdminTab('tabBelumAbsen')" id="sideBtn_tabBelumAbsen" title="Belum Clock-In"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
-            <i class="fa-solid fa-user-clock text-xs"></i>
-        </button>
-        <button onclick="switchAdminTab('tabSummary')" id="sideBtn_tabSummary"
-            title="Rekap & Akumulasi Per Tanggal"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
-            <i class="fa-solid fa-chart-column text-xs"></i>
-        </button>
-        <button onclick="switchAdminTab('tabAllLogs')" id="sideBtn_tabAllLogs"
-            title="Semua Database Absensi"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
-            <i class="fa-solid fa-table-list text-xs"></i>
-        </button>
-        <button onclick="switchAdminTab('tabUsers')" id="sideBtn_tabUsers" title="Kelola Akun Sales"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
-            <i class="fa-solid fa-users text-xs"></i>
+    class="fixed md:sticky top-0 left-0 h-screen w-64 bg-white border-r border-slate-200/80 shrink-0 z-40 md:z-10 flex flex-col justify-between transition-transform duration-200 -translate-x-full md:translate-x-0 shadow-lg md:shadow-none">
+    
+    <!-- Top Brand Logo -->
+    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                <i class="fa-solid fa-bolt text-sky-600 text-sm"></i>
+            </div>
+            <div>
+                <span class="font-extrabold text-sm tracking-tight text-slate-900 block leading-tight">STARLITE</span>
+                <span class="text-[10px] font-semibold text-slate-400 block leading-tight">Field Ops & Presensi</span>
+            </div>
+        </div>
+        <!-- Close button for mobile -->
+        <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-slate-700 p-1">
+            <i class="fa-solid fa-xmark text-sm"></i>
         </button>
     </div>
-    <div class="flex flex-col items-center gap-2">
-        <button onclick="switchAdminTab('tabSettings')" id="sideBtn_tabSettings"
-            title="Pengaturan Jam Kerja"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
-            <i class="fa-solid fa-sliders text-xs"></i>
-        </button>
+
+    <!-- Middle Menu Items -->
+    <div class="flex-1 overflow-y-auto px-3.5 py-4 space-y-6">
+        <!-- Main Navigation Section -->
+        <div>
+            <p class="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase px-3 mb-2">Menu Utama</p>
+            <nav class="space-y-1">
+                <button onclick="switchAdminTab('tabMonitoring'); toggleMobileSidebar(false);" id="sideBtn_tabMonitoring"
+                    class="vantus-nav-item active">
+                    <i class="fa-solid fa-calendar-check text-sm w-4 text-center"></i>
+                    <span>Attendance Harian</span>
+                </button>
+                <button onclick="switchAdminTab('tabBelumAbsen'); toggleMobileSidebar(false);" id="sideBtn_tabBelumAbsen"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-user-clock text-sm w-4 text-center"></i>
+                    <span>Belum Clock-In</span>
+                    <span id="badgeSideBelum"
+                        class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">0</span>
+                </button>
+                <button onclick="switchAdminTab('tabSummary'); toggleMobileSidebar(false);" id="sideBtn_tabSummary"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-chart-column text-sm w-4 text-center"></i>
+                    <span>Rekap Akumulasi</span>
+                    <span id="badgeSideLate"
+                        class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">0</span>
+                </button>
+                <button onclick="switchAdminTab('tabAllLogs'); toggleMobileSidebar(false);" id="sideBtn_tabAllLogs"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-table-list text-sm w-4 text-center"></i>
+                    <span>Semua Database</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Management & Settings Section -->
+        <div>
+            <p class="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase px-3 mb-2">Pengaturan & Kelola</p>
+            <nav class="space-y-1">
+                <button onclick="switchAdminTab('tabUsers'); toggleMobileSidebar(false);" id="sideBtn_tabUsers"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-users text-sm w-4 text-center"></i>
+                    <span>Kelola Akun Personel</span>
+                </button>
+                <button onclick="switchAdminTab('tabStations'); toggleMobileSidebar(false);" id="sideBtn_tabStations"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-train text-sm w-4 text-center"></i>
+                    <span>Database Stasiun</span>
+                </button>
+                <button onclick="switchAdminTab('tabSettings'); toggleMobileSidebar(false);" id="sideBtn_tabSettings"
+                    class="vantus-nav-item">
+                    <i class="fa-solid fa-sliders text-sm w-4 text-center"></i>
+                    <span>Jam Kerja & Sistem</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Bottom User Profile Card -->
+    <div class="p-3.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
+        <div class="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center text-xs shrink-0">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="min-w-0">
+                    <p id="sideUserName" class="text-xs font-bold text-slate-800 truncate">Administrator</p>
+                    <p id="sideUserSub" class="text-[10px] text-slate-400 truncate">Admin • Pusat</p>
+                </div>
+            </div>
+            <button onclick="handleLogout()" title="Keluar / Logout"
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0">
+                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            </button>
+        </div>
     </div>
 </aside>

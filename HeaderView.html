@@ -1,68 +1,66 @@
-<!-- TOP DARK HEADER BAR (COMPACT h-11) -->
+<!-- TOP CLEAN LIGHT HEADER BAR (VANTUS ERP STYLE - h-14) -->
 <header
-    class="bg-[#1c2434] text-white h-11 px-3 lg:px-5 flex items-center justify-between sticky top-0 z-30 shrink-0 border-b border-slate-800">
-    <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-            <div
-                class="w-6 h-6 rounded bg-amber-400/15 border border-amber-400/30 flex items-center justify-center overflow-hidden p-0.5">
-                <img id="appLogoNav" src="" alt="Logo" class="w-full h-full object-contain hidden"
-                    onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');">
-                <i class="fa-solid fa-bolt text-amber-400 text-[10px]"></i>
+    class="bg-white text-slate-800 h-14 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0 border-b border-slate-200/80 shadow-2xs">
+    <div class="flex items-center gap-3">
+        <!-- Mobile Sidebar Toggle -->
+        <button type="button" onclick="toggleMobileSidebar()"
+            class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+            <i class="fa-solid fa-bars text-sm"></i>
+        </button>
+
+        <!-- Brand Info for Mobile -->
+        <div class="flex md:hidden items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center p-0.5">
+                <i class="fa-solid fa-bolt text-sky-600 text-xs"></i>
             </div>
-            <span class="font-extrabold text-sm tracking-tight text-white">starlite</span>
-            <span class="text-slate-600 hidden sm:inline">|</span>
-            <span class="text-[11px] font-semibold text-slate-300 hidden sm:inline">Time Management</span>
+            <span class="font-extrabold text-sm tracking-tight text-slate-900">STARLITE</span>
         </div>
 
-        <!-- Admin Navigation Pills -->
-        <nav id="adminTopNav" class="hidden md:flex items-center gap-1 ml-2">
-            <button onclick="switchAdminTab('tabMonitoring')" id="navBtn_tabMonitoring"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold bg-[#2c374b] text-white transition">
-                Attendance Harian
-            </button>
-            <button onclick="switchAdminTab('tabBelumAbsen')" id="navBtn_tabBelumAbsen"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+        <!-- Breadcrumbs & Dynamic Page Header (Desktop) -->
+        <div class="hidden md:flex flex-col">
+            <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                <span id="adminBreadcrumbParent">Starlite Operations</span>
+                <span>/</span>
+                <span id="adminBreadcrumbChild" class="text-sky-700 font-semibold">Attendance Harian</span>
+            </div>
+            <h2 id="adminHeaderTitle" class="text-sm font-extrabold text-slate-900 tracking-tight leading-none mt-0.5">Attendance Harian</h2>
+        </div>
+
+        <!-- Hidden Top Nav Pills for Backward Compatibility -->
+        <nav id="adminTopNav" class="hidden">
+            <button onclick="switchAdminTab('tabMonitoring')" id="navBtn_tabMonitoring">Attendance Harian</button>
+            <button onclick="switchAdminTab('tabBelumAbsen')" id="navBtn_tabBelumAbsen">
                 <span>Belum Clock-In</span>
-                <span id="badgeNavBelum"
-                    class="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[10px] font-bold">0</span>
+                <span id="badgeNavBelum">0</span>
             </button>
-            <button onclick="switchAdminTab('tabSummary')" id="navBtn_tabSummary"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
-                <span>Rekap & Akumulasi</span>
-                <span id="badgeNavLate"
-                    class="px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">0</span>
+            <button onclick="switchAdminTab('tabSummary')" id="navBtn_tabSummary">
+                <span>Rekap Akumulasi</span>
+                <span id="badgeNavLate">0</span>
             </button>
-            <button onclick="switchAdminTab('tabAllLogs')" id="navBtn_tabAllLogs"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
-                Semua Database
-            </button>
-            <button onclick="switchAdminTab('tabUsers')" id="navBtn_tabUsers"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition">
-                Kelola Akun Sales
-            </button>
-            <button onclick="switchAdminTab('tabSettings')" id="navBtn_tabSettings"
-                class="px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
-                <i class="fa-regular fa-clock text-[10px] text-amber-400"></i>
-                <span>Jam Kerja</span>
-            </button>
+            <button onclick="switchAdminTab('tabAllLogs')" id="navBtn_tabAllLogs">Semua Database Absensi</button>
+            <button onclick="switchAdminTab('tabUsers')" id="navBtn_tabUsers">Kelola Akun Personel</button>
+            <button onclick="switchAdminTab('tabStations')" id="navBtn_tabStations">Database Stasiun</button>
+            <button onclick="switchAdminTab('tabSettings')" id="navBtn_tabSettings">Jam Kerja & Sistem</button>
         </nav>
     </div>
 
-    <!-- Right User Info & Clock Bar -->
-    <div class="flex items-center gap-2.5">
-        <div
-            class="hidden sm:flex items-center gap-1.5 bg-[#252f42] px-2.5 py-1 rounded border border-slate-700/70">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="liveClock" class="font-mono-code text-[11px] text-slate-200">--:--:-- WIB</span>
+    <!-- Right Clock, User Info & Logout -->
+    <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Live Real-Time Clock Badge -->
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200/90 px-3 py-1.5 rounded-xl shadow-2xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="liveClock" class="font-mono-code text-xs font-bold text-slate-700">--:--:-- WIB</span>
         </div>
-        <div class="flex items-center gap-2 pl-2 border-l border-slate-700">
-            <div class="text-right leading-tight">
-                <p id="navUserName" class="text-[11px] font-bold text-white"></p>
-                <p id="navUserSub" class="text-[9.5px] text-slate-400"></p>
+
+        <!-- User Info & Logout Button -->
+        <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div class="hidden sm:block text-right leading-tight">
+                <p id="navUserName" class="text-xs font-bold text-slate-800"></p>
+                <p id="navUserSub" class="text-[10.5px] text-slate-500"></p>
             </div>
             <button onclick="handleLogout()" title="Keluar / Logout"
-                class="p-1.5 rounded bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition text-xs">
-                <i class="fa-solid fa-right-from-bracket"></i>
+                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition shadow-2xs">
+                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
             </button>
         </div>
     </div>

@@ -1,14 +1,19 @@
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+    html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     body {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        background-color: #f1f5f9;
-        color: #1e293b;
+        background-color: #f8fafc;
+        color: #0f172a;
         margin: 0;
-        font-size: 12px;
-        /* Ukuran pas untuk 100% Zoom Monitor Desktop */
+        font-size: 13px;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     .font-mono-code {
@@ -20,8 +25,8 @@
     }
 
     ::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
     }
 
     ::-webkit-scrollbar-track {
@@ -30,56 +35,123 @@
 
     ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
-        border-radius: 3px;
+        border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
 
-    /* Compact Table Styling (Pas di 100% Chrome) */
+    /* VANTUS ERP Clean Table Styling (Spacious, Crisp & Fully Legible) */
     .tiimi-th {
-        padding: 7px 10px;
-        font-size: 10.5px;
+        padding: 12px 16px;
+        font-size: 11px;
         font-weight: 700;
-        color: #475569;
-        background-color: #f8fafc;
+        color: #64748b;
+        background-color: #ffffff;
         border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.04em;
     }
 
     .tiimi-filter-cell {
-        padding: 4px 8px;
+        padding: 8px 12px;
         background-color: #f8fafc;
         border-bottom: 1px solid #e2e8f0;
     }
 
     .tiimi-filter-input {
         width: 100%;
-        padding: 3px 6px;
-        font-size: 10.5px;
+        padding: 6px 10px;
+        font-size: 11.5px;
         background-color: #ffffff;
         border: 1px solid #cbd5e1;
-        border-radius: 4px;
-        color: #1e293b;
+        border-radius: 8px;
+        color: #0f172a;
         outline: none;
+        transition: all 0.15s ease-in-out;
     }
 
     .tiimi-filter-input:focus {
-        border-color: #0d9488;
-        box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.15);
+        border-color: #0284c7;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
     }
 
     .tiimi-td {
-        padding: 7px 10px;
-        font-size: 11.5px;
+        padding: 13px 16px;
+        font-size: 12px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
+        color: #334155;
+    }
+
+    .tiimi-row {
+        transition: background-color 0.15s ease-in-out;
     }
 
     .tiimi-row:hover {
         background-color: #f8fafc;
+    }
+
+    /* VANTUS Sidebar Pill Item Styles */
+    .vantus-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.18s ease;
+    }
+    .vantus-nav-item:hover {
+        color: #0f172a;
+        background-color: #f1f5f9;
+    }
+    .vantus-nav-item.active {
+        color: #ffffff !important;
+        background-color: #0284c7 !important;
+        font-weight: 700;
+        box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.35);
+    }
+    .vantus-nav-item.active i {
+        color: #ffffff !important;
+    }
+
+    /* Touch Friendly Action Buttons */
+    .touch-target {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .btn-action-in {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        box-shadow: 0 4px 14px -2px rgba(2, 132, 199, 0.35);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-action-in:hover:not(:disabled) {
+        background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+        box-shadow: 0 6px 18px -2px rgba(2, 132, 199, 0.45);
+        transform: translateY(-1px);
+    }
+    .btn-action-in:active:not(:disabled) {
+        transform: translateY(0) scale(0.985);
+    }
+
+    .btn-action-out {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.3);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-action-out:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        box-shadow: 0 6px 18px -2px rgba(15, 23, 42, 0.4);
+        transform: translateY(-1px);
+    }
+    .btn-action-out:active:not(:disabled) {
+        transform: translateY(0) scale(0.985);
     }
 </style>

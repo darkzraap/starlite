@@ -18,13 +18,25 @@
     }
 
     function switchAdminTab(tabId) {
-        const allTabs = ['tabMonitoring', 'tabBelumAbsen', 'tabSummary', 'tabAllLogs', 'tabUsers', 'tabSettings'];
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if ((tabId === 'tabUsers' || tabId === 'tabStations') && (roleLower === 'controller' || roleLower === 'site manager')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Akses Dibatasi',
+                text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak memiliki izin untuk mengelola akun sales atau database stasiun.`,
+                confirmButtonColor: '#0f766e'
+            });
+            return;
+        }
+
+        const allTabs = ['tabMonitoring', 'tabBelumAbsen', 'tabSummary', 'tabAllLogs', 'tabUsers', 'tabStations', 'tabSettings'];
         const titles = {
             tabMonitoring: 'Attendance Harian',
             tabBelumAbsen: 'Daftar Belum Clock-In',
             tabSummary: 'Database Akumulasi Kehadiran Per Tanggal',
             tabAllLogs: 'Semua Database Absensi',
             tabUsers: 'Kelola Akun Sales & Admin',
+            tabStations: 'Database Stasiun & Kota',
             tabSettings: 'Pengaturan Jam Kerja'
         };
 
@@ -37,13 +49,20 @@
             }
             const sideBtn = document.getElementById(`sideBtn_${id}`);
             if (sideBtn) {
-                sideBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition';
+                sideBtn.className = 'vantus-nav-item';
             }
         });
 
         const activeEl = document.getElementById(tabId);
         if (activeEl) activeEl.classList.remove('hidden');
-        document.getElementById('adminPageTitle').textContent = titles[tabId] || 'Attendance';
+        
+        const titleText = titles[tabId] || 'Attendance';
+        const pageTitleEl = document.getElementById('adminPageTitle');
+        if (pageTitleEl) pageTitleEl.textContent = titleText;
+        const headerTitleEl = document.getElementById('adminHeaderTitle');
+        if (headerTitleEl) headerTitleEl.textContent = titleText;
+        const breadcrumbEl = document.getElementById('adminBreadcrumbChild');
+        if (breadcrumbEl) breadcrumbEl.textContent = titleText;
 
         const activeTop = document.getElementById(`navBtn_${tabId}`);
         if (activeTop) {
@@ -51,7 +70,24 @@
         }
         const activeSide = document.getElementById(`sideBtn_${tabId}`);
         if (activeSide) {
-            activeSide.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-teal-700 bg-teal-50 transition';
+            activeSide.className = 'vantus-nav-item active';
+        }
+    }
+
+    function toggleMobileSidebar(forceState) {
+        const sidebar = document.getElementById('adminLeftSidebar');
+        const backdrop = document.getElementById('mobileSidebarBackdrop');
+        if (!sidebar || !backdrop) return;
+        
+        const isCurrentlyOpen = !sidebar.classList.contains('-translate-x-full');
+        const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen;
+
+        if (shouldOpen) {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
         }
     }
 
@@ -89,16 +125,27 @@
             document.getElementById('kpiBelumOut').textContent = noClockOutCount;
             document.getElementById('kpiAttendanceRate').textContent = rate + '%';
 
-            document.getElementById('badgeNavBelum').textContent = belumCount;
-            document.getElementById('badgeNavLate').textContent = lateCount;
+            const bNavBelum = document.getElementById('badgeNavBelum');
+            if (bNavBelum) bNavBelum.textContent = belumCount;
+            const bNavLate = document.getElementById('badgeNavLate');
+            if (bNavLate) bNavLate.textContent = lateCount;
+
+            const bSideBelum = document.getElementById('badgeSideBelum');
+            if (bSideBelum) bSideBelum.textContent = belumCount;
+            const bSideLate = document.getElementById('badgeSideLate');
+            if (bSideLate) bSideLate.textContent = lateCount;
 
             // Hitung akumulasi sesuai tanggal yang dipilih
             recalculateSummaryByDateRange();
+
+            tableState.stations.data = res.stations || [];
+            updateStationDatalist();
 
             renderTable('todayLogs');
             renderTable('belumAbsen');
             renderTable('allLogs');
             renderTable('users');
+            renderTable('stations');
         }).withFailureHandler(err => {
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Gagal Muat Data Admin', text: err.toString(), confirmButtonColor: '#0f766e' });
@@ -113,17 +160,40 @@
 
         document.getElementById('detailModalName').textContent = userObj ? userObj.nama : username;
         document.getElementById('detailModalBadge').textContent = userObj ? `${userObj.status} • ${userObj.role}` : 'Sales';
-        document.getElementById('detailModalSub').textContent = userObj ? `Username: ${userObj.username} | Stasiun: ${userObj.stasiun} (${userObj.provinsi})` : username;
+        document.getElementById('detailModalSub').textContent = userObj ? `Username: ${userObj.username} | Stasiun Base: ${userObj.stasiun} (${userObj.provinsi})` : username;
 
         const totalHadir = userLogs.length;
         const totalOnTime = userLogs.filter(l => l.statusIn === 'On Time').length;
         const totalLate = userLogs.filter(l => l.statusIn === 'Late').length;
         const totalOut = userLogs.filter(l => l.jamOut !== '').length;
 
+        let totalTargetVisit = 0;
+        let totalAktualWo = 0;
+        let totalTargetHc = 0;
+        let totalAktualHc = 0;
+        let totalPendingWo = 0;
+
+        userLogs.forEach(l => {
+            if (l.targetVisit !== '' && !isNaN(Number(l.targetVisit))) totalTargetVisit += Number(l.targetVisit);
+            if (l.aktualWo !== '' && !isNaN(Number(l.aktualWo))) totalAktualWo += Number(l.aktualWo);
+            if (l.targetClosingHc !== '' && !isNaN(Number(l.targetClosingHc))) totalTargetHc += Number(l.targetClosingHc);
+            if (l.aktualHc !== '' && !isNaN(Number(l.aktualHc))) totalAktualHc += Number(l.aktualHc);
+            if (l.pendingWo !== '' && !isNaN(Number(l.pendingWo))) totalPendingWo += Number(l.pendingWo);
+        });
+
         document.getElementById('detStatHadir').textContent = totalHadir;
         document.getElementById('detStatOnTime').textContent = totalOnTime;
         document.getElementById('detStatLate').textContent = totalLate;
         document.getElementById('detStatOut').textContent = totalOut;
+
+        const woPct = totalTargetVisit > 0 ? Math.round((totalAktualWo / totalTargetVisit) * 100) : 0;
+        const hcPct = totalTargetHc > 0 ? Math.round((totalAktualHc / totalTargetHc) * 100) : 0;
+
+        document.getElementById('detStatTargetVisit').textContent = totalTargetVisit;
+        document.getElementById('detStatAktualWo').innerHTML = `${totalAktualWo} <span class="text-[10px] font-bold text-teal-600 block">(${woPct}%)</span>`;
+        document.getElementById('detStatTargetHc').textContent = totalTargetHc;
+        document.getElementById('detStatAktualHc').innerHTML = `${totalAktualHc} <span class="text-[10px] font-bold text-indigo-600 block">(${hcPct}%)</span>`;
+        document.getElementById('detStatPendingWo').textContent = totalPendingWo;
 
         tableState.userDetail.data = userLogs;
         tableState.userDetail.filters = {};
@@ -172,7 +242,12 @@
                 totalLate: 0,
                 totalBelumOut: 0,
                 totalLengkap: 0,
-                totalBelumIn: totalDaysInRange
+                totalBelumIn: totalDaysInRange,
+                totalTargetVisit: 0,
+                totalAktualWo: 0,
+                totalTargetHc: 0,
+                totalAktualHc: 0,
+                totalPendingWo: 0
             };
         });
 
@@ -197,6 +272,12 @@
             } else {
                 summaryMap[uKey].totalBelumOut += 1;
             }
+
+            if (log.targetVisit !== '' && !isNaN(Number(log.targetVisit))) summaryMap[uKey].totalTargetVisit += Number(log.targetVisit);
+            if (log.aktualWo !== '' && !isNaN(Number(log.aktualWo))) summaryMap[uKey].totalAktualWo += Number(log.aktualWo);
+            if (log.targetClosingHc !== '' && !isNaN(Number(log.targetClosingHc))) summaryMap[uKey].totalTargetHc += Number(log.targetClosingHc);
+            if (log.aktualHc !== '' && !isNaN(Number(log.aktualHc))) summaryMap[uKey].totalAktualHc += Number(log.aktualHc);
+            if (log.pendingWo !== '' && !isNaN(Number(log.pendingWo))) summaryMap[uKey].totalPendingWo += Number(log.pendingWo);
 
             if (!attendedDatesPerUser[uKey]) attendedDatesPerUser[uKey] = new Set();
             attendedDatesPerUser[uKey].add(log.tanggal);
@@ -240,6 +321,12 @@
     // ================= ADMIN USER CRUD & CASCADE DELETE =================
     function handleSaveUser(e) {
         e.preventDefault();
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if (roleLower === 'controller' || roleLower === 'site manager') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak diizinkan menambah atau mengubah akun.`, confirmButtonColor: '#0f766e' });
+            return;
+        }
+
         const userObj = {
             id: document.getElementById('usrId').value,
             nama: document.getElementById('usrNama').value.trim(),
@@ -264,7 +351,7 @@
         }).withFailureHandler(err => {
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0f766e' });
-        }).saveUserAdmin(userObj);
+        }).saveUserAdmin(userObj, currentUser ? currentUser.role : '');
     }
 
     function editUser(u) {
@@ -286,6 +373,12 @@
     }
 
     function deleteUser(id, nama) {
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if (roleLower === 'controller' || roleLower === 'site manager') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: `Role ${currentUser && currentUser.role ? currentUser.role : 'Site Manager'} tidak diizinkan menghapus akun.`, confirmButtonColor: '#0f766e' });
+            return;
+        }
+
         Swal.fire({
             title: `Hapus Akun ${nama}?`,
             text: 'Seluruh data akun DAN semua riwayat absensi milik orang ini akan dihapus permanen agar rasio % kehadiran tetap akurat.',
@@ -304,7 +397,99 @@
                 }).withFailureHandler(err => {
                     hideLoading();
                     Swal.fire({ icon: 'error', title: 'Gagal Hapus', text: err.toString(), confirmButtonColor: '#0f766e' });
-                }).deleteUserAdmin(id);
+                }).deleteUserAdmin(id, currentUser ? currentUser.role : '');
+            }
+        });
+    }
+
+    // ================= ADMIN STATIONS CRUD (ADMIN ONLY) =================
+    function handleSaveStation(e) {
+        e.preventDefault();
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if (roleLower !== 'admin') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Hanya Admin yang dapat mengelola database stasiun.', confirmButtonColor: '#0f766e' });
+            return;
+        }
+
+        const stationObj = {
+            id: document.getElementById('stnId').value,
+            kota: document.getElementById('stnKota').value.trim(),
+            namaStasiun: document.getElementById('stnNama').value.trim()
+        };
+
+        showLoading('Menyimpan data stasiun...');
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
+                resetStationForm();
+                if (res.stations) {
+                    tableState.stations.data = res.stations;
+                    updateStationDatalist();
+                    renderTable('stations');
+                } else {
+                    loadAdminData();
+                }
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: res.message, confirmButtonColor: '#0f766e' });
+            }
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0f766e' });
+        }).saveStationAdmin(stationObj, currentUser ? currentUser.role : '');
+    }
+
+    function editStation(st) {
+        document.getElementById('formStationTitle').textContent = 'Edit Stasiun: ' + st.namaStasiun;
+        document.getElementById('stnId').value = st.id;
+        document.getElementById('stnKota').value = st.kota;
+        document.getElementById('stnNama').value = st.namaStasiun;
+        const formEl = document.getElementById('stationForm');
+        if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetStationForm() {
+        document.getElementById('formStationTitle').textContent = 'Tambah Stasiun Baru';
+        document.getElementById('stationForm').reset();
+        document.getElementById('stnId').value = '';
+    }
+
+    function deleteStation(id, namaStasiun) {
+        const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
+        if (roleLower !== 'admin') {
+            Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Hanya Admin yang dapat menghapus stasiun.', confirmButtonColor: '#0f766e' });
+            return;
+        }
+
+        Swal.fire({
+            title: `Hapus Stasiun?`,
+            text: `Yakin ingin menghapus stasiun "${namaStasiun}" dari database?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then(result => {
+            if (result.isConfirmed) {
+                showLoading('Menghapus data stasiun...');
+                google.script.run.withSuccessHandler(res => {
+                    hideLoading();
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Terhapus', text: res.message, confirmButtonColor: '#0f766e' });
+                        if (res.stations) {
+                            tableState.stations.data = res.stations;
+                            updateStationDatalist();
+                            renderTable('stations');
+                        } else {
+                            loadAdminData();
+                        }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: res.message, confirmButtonColor: '#0f766e' });
+                    }
+                }).withFailureHandler(err => {
+                    hideLoading();
+                    Swal.fire({ icon: 'error', title: 'Gagal Hapus', text: err.toString(), confirmButtonColor: '#0f766e' });
+                }).deleteStationAdmin(id, currentUser ? currentUser.role : '');
             }
         });
     }

@@ -171,13 +171,53 @@
 
         document.getElementById('navUserName').textContent = currentUser.nama;
         document.getElementById('navUserSub').textContent = `${currentUser.role} • ${currentUser.stasiun}`;
+        const sideName = document.getElementById('sideUserName');
+        if (sideName) sideName.textContent = currentUser.nama;
+        const sideSub = document.getElementById('sideUserSub');
+        if (sideSub) sideSub.textContent = `${currentUser.role} • ${currentUser.stasiun}`;
 
-        const isAdmin = String(currentUser.role).toLowerCase() === 'admin';
-        if (isAdmin) {
+        const roleLower = String(currentUser.role || '').toLowerCase();
+        const isAdminOrManager = roleLower === 'admin' || roleLower === 'controller' || roleLower === 'site manager';
+        const isRestrictedManager = roleLower === 'controller' || roleLower === 'site manager';
+
+        if (isAdminOrManager) {
             document.getElementById('adminTopNav').classList.remove('hidden');
             document.getElementById('adminLeftSidebar').classList.remove('hidden');
             document.getElementById('salesView').classList.add('hidden');
             document.getElementById('adminView').classList.remove('hidden');
+
+            // Pengaturan Hak Akses: Controller & Site Manager mirip Admin tapi tidak bisa akses CRUD Kelola Akun Sales & Database Stasiun
+            const navUsers = document.getElementById('navBtn_tabUsers');
+            const sideUsers = document.getElementById('sideBtn_tabUsers');
+            const btnTambah = document.getElementById('btnHeaderTambahSales');
+            const mobileUsers = document.getElementById('mobileTabBtn_tabUsers');
+
+            const navStations = document.getElementById('navBtn_tabStations');
+            const sideStations = document.getElementById('sideBtn_tabStations');
+            const mobileStations = document.getElementById('mobileTabBtn_tabStations');
+
+            if (isRestrictedManager) {
+                if (navUsers) navUsers.classList.add('hidden');
+                if (sideUsers) sideUsers.classList.add('hidden');
+                if (btnTambah) btnTambah.classList.add('hidden');
+                if (mobileUsers) mobileUsers.classList.add('hidden');
+
+                if (navStations) navStations.classList.add('hidden');
+                if (sideStations) sideStations.classList.add('hidden');
+                if (mobileStations) mobileStations.classList.add('hidden');
+
+                switchAdminTab('tabMonitoring');
+            } else {
+                if (navUsers) navUsers.classList.remove('hidden');
+                if (sideUsers) sideUsers.classList.remove('hidden');
+                if (btnTambah) btnTambah.classList.remove('hidden');
+                if (mobileUsers) mobileUsers.classList.remove('hidden');
+
+                if (navStations) navStations.classList.remove('hidden');
+                if (sideStations) sideStations.classList.remove('hidden');
+                if (mobileStations) mobileStations.classList.remove('hidden');
+            }
+
             loadAdminData();
         } else {
             document.getElementById('adminTopNav').classList.add('hidden');

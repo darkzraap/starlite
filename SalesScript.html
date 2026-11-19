@@ -1,5 +1,8 @@
 <script>
     // ================= SALES FLOW (AUTO-RESET PER HARI & KUNCI CLOCK-OUT) =================
+    let salesAvailableStations = [];
+    let salesTodayRecord = null;
+
     function applyWorkSettingsToUI() {
         const rIn = document.getElementById('salesRuleIn');
         const rOut = document.getElementById('salesRuleOut');
@@ -41,6 +44,9 @@
             }
             document.getElementById('salesTodayDateLabel').textContent = res.serverDate;
 
+            salesAvailableStations = res.stations || [];
+            salesTodayRecord = res.todayRecord || null;
+
             const rec = res.todayRecord;
             const btnIn = document.getElementById('btnClockIn');
             const btnOut = document.getElementById('btnClockOut');
@@ -60,11 +66,11 @@
                 durEl.textContent = 'Menunggu Clock-In';
                 btnIn.disabled = false;
                 btnOut.disabled = true; // Tidak bisa Clock-Out kalau belum Clock-In
-                noticeEl.textContent = 'Anda wajib melakukan Clock-In terlebih dahulu sebelum bisa melakukan Clock-Out.';
+                noticeEl.innerHTML = '<i class="fa-solid fa-circle-info text-teal-600 mr-1"></i> Anda wajib melakukan Clock-In terlebih dahulu untuk memulai shift.';
             } else {
                 boxIn.textContent = rec.jamIn || '--:--';
                 badgeIn.textContent = rec.statusIn;
-                badgeIn.className = `text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block ${
+                badgeIn.className = `text-[10.5px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${
                     rec.statusIn === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-teal-50 text-teal-700 border border-teal-200'
                 }`;
                 btnIn.disabled = true;
@@ -72,16 +78,53 @@
                 if (rec.jamOut) {
                     boxOut.textContent = rec.jamOut;
                     badgeOut.textContent = 'Completed';
-                    badgeOut.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200';
+                    badgeOut.className = 'text-[10.5px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200';
                     durEl.textContent = calcDurationLabel(rec.jamIn, rec.jamOut);
                     btnOut.disabled = true;
-                    noticeEl.textContent = 'Absensi Clock-In dan Clock-Out Anda untuk hari ini telah lengkap.';
+                    noticeEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Kehadiran hari ini lengkap. Selamat beristirahat!';
                 } else {
-                    boxOut.textContent = 'Belum Clock-Out';
+                    boxOut.textContent = 'Belum Out';
                     badgeOut.classList.add('hidden');
                     durEl.textContent = 'Sedang Bertugas';
                     btnOut.disabled = false;
-                    noticeEl.textContent = `Tombol Clock-Out dapat digunakan setelah pukul ${workSettings.minClockOut} WIB.`;
+                    noticeEl.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i> Tombol Clock-Out aktif setelah pukul <strong>${workSettings.minClockOut} WIB</strong>.`;
+                }
+            }
+
+            // Update Rencana & Capaian Card
+            const planCard = document.getElementById('salesTodayPlanCard');
+            if (planCard) {
+                if (rec) {
+                    planCard.classList.remove('hidden');
+                    document.getElementById('planCardStations').textContent = rec.stasiunIn || rec.stasiun || '-';
+                    document.getElementById('planCardVisit').textContent = rec.visitKemanaIn || '-';
+                    document.getElementById('planCardTargetVisit').textContent = rec.targetVisit !== '' && rec.targetVisit !== undefined ? rec.targetVisit : '-';
+                    document.getElementById('planCardTargetHc').textContent = rec.targetClosingHc !== '' && rec.targetClosingHc !== undefined ? rec.targetClosingHc : '-';
+
+                    const summaryOut = document.getElementById('planCardSummaryOut');
+                    const cidSection = document.getElementById('planCardCidSection');
+                    const cidListEl = document.getElementById('planCardCidList');
+                    const badgePlan = document.getElementById('salesTodayPlanBadge');
+
+                    if (rec.jamOut) {
+                        badgePlan.textContent = 'Selesai Shift';
+                        badgePlan.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+                        summaryOut.innerHTML = `Work Order: <strong class="text-sky-700">${rec.aktualWo || 0}</strong> • Head Count: <strong class="text-indigo-700">${rec.aktualHc || 0}</strong> • Pending: <strong class="text-amber-700">${rec.pendingWo || 0}</strong>`;
+
+                        if (rec.cidList) {
+                            cidSection.classList.remove('hidden');
+                            cidListEl.innerHTML = rec.cidList.split(',').map(c => `<span class="px-2.5 py-0.5 bg-sky-50 text-sky-800 rounded-lg font-mono-code text-xs font-bold border border-sky-200">${c.trim()}</span>`).join(' ');
+                        } else {
+                            cidSection.classList.add('hidden');
+                        }
+                    } else {
+                        badgePlan.textContent = 'Shift Aktif';
+                        badgePlan.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200';
+                        summaryOut.textContent = 'Menunggu Clock-Out';
+                        cidSection.classList.add('hidden');
+                    }
+                } else {
+                    planCard.classList.add('hidden');
                 }
             }
 
@@ -92,6 +135,89 @@
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Gagal Memuat Data', text: err.toString(), confirmButtonColor: '#0f766e' });
         }).getSalesTodayStatus(currentUser.username);
+    }
+
+    function renderStationCheckboxes(containerId, nameAttr, preSelectedList = []) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        let selectedSet = new Set();
+        if (Array.isArray(preSelectedList)) {
+            preSelectedList.forEach(s => selectedSet.add(String(s).trim().toLowerCase()));
+        } else if (typeof preSelectedList === 'string' && preSelectedList.trim()) {
+            preSelectedList.split(',').forEach(s => selectedSet.add(s.trim().toLowerCase()));
+        }
+
+        let stations = salesAvailableStations;
+        if (!stations || stations.length === 0) {
+            if (currentUser && currentUser.stasiun) {
+                stations = [{ id: 'USR_STN', namaStasiun: currentUser.stasiun, kota: currentUser.provinsi || '' }];
+            } else {
+                container.innerHTML = '<div class="col-span-2 text-center text-slate-400 py-3 text-xs">Belum ada database stasiun yang tersimpan.</div>';
+                return;
+            }
+        }
+
+        container.innerHTML = stations.map((st, idx) => {
+            const isChecked = selectedSet.has(st.namaStasiun.trim().toLowerCase());
+            const inputId = `${nameAttr}_${idx}`;
+            const activeClass = isChecked ? 'border-teal-500 bg-teal-50/60 shadow-2xs' : 'border-slate-200 bg-white hover:bg-slate-50';
+            return `
+                <label for="${inputId}" class="flex items-center gap-2.5 p-2.5 rounded-xl border ${activeClass} cursor-pointer transition select-none touch-manipulation">
+                    <input type="checkbox" id="${inputId}" name="${nameAttr}" value="${st.namaStasiun}" ${isChecked ? 'checked' : ''}
+                        onchange="onStationCheckboxChange(this); updateSubmitButtonState();"
+                        class="rounded text-teal-600 focus:ring-teal-500 w-4 h-4 border-slate-300 cursor-pointer shrink-0">
+                    <div class="leading-tight min-w-0 flex-1">
+                        <span class="font-bold text-slate-800 text-xs block truncate">${st.namaStasiun}</span>
+                        <span class="text-[10px] text-slate-400 block">${st.kota}</span>
+                    </div>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function onStationCheckboxChange(el) {
+        const label = el.closest('label');
+        if (!label) return;
+        if (el.checked) {
+            label.classList.add('border-teal-500', 'bg-teal-50/60', 'shadow-2xs');
+            label.classList.remove('border-slate-200', 'bg-white');
+        } else {
+            label.classList.remove('border-teal-500', 'bg-teal-50/60', 'shadow-2xs');
+            label.classList.add('border-slate-200', 'bg-white');
+        }
+    }
+
+    function onAktualWoChange(val) {
+        const num = parseInt(val, 10);
+        const count = (!isNaN(num) && num > 0) ? Math.min(num, 50) : 0;
+        const badge = document.getElementById('outCidCountBadge');
+        if (badge) badge.textContent = `${count} Customer ID`;
+
+        const container = document.getElementById('cidInputsContainer');
+        if (!container) return;
+
+        if (count <= 0) {
+            container.innerHTML = `
+                <div class="text-xs text-slate-400 italic bg-white p-3 rounded-xl border border-slate-200 text-center">
+                    Tidak ada input Customer ID yang perlu diisi (Realisasi Work Order = 0).
+                </div>
+            `;
+            return;
+        }
+
+        let html = '<div class="space-y-2">';
+        for (let i = 1; i <= count; i++) {
+            html += `
+                <div class="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/10 shadow-2xs">
+                    <span class="text-xs font-bold text-sky-800 px-2.5 py-1 bg-sky-50 rounded-lg shrink-0">Customer ID #${i}</span>
+                    <input type="text" name="cidInputItem" placeholder="Nomor Customer ID #${i}" oninput="updateSubmitButtonState()"
+                        class="w-full text-xs sm:text-sm font-mono-code px-2 py-1 border-0 focus:outline-none text-slate-800 bg-transparent">
+                </div>
+            `;
+        }
+        html += '</div>';
+        container.innerHTML = html;
     }
 
     async function openAttendanceModal(type) {
@@ -121,7 +247,48 @@
         document.getElementById('cameraFallbackOverlay').classList.add('hidden');
         document.getElementById('cameraFallbackOverlay').classList.remove('flex');
 
-        document.getElementById('modalTitle').textContent = type === 'IN' ? 'Konfirmasi Clock-In (Masuk)' : 'Konfirmasi Clock-Out (Pulang)';
+        const formIn = document.getElementById('formClockInSection');
+        const formOut = document.getElementById('formClockOutSection');
+        const submitBtn = document.getElementById('btnSubmitCapture');
+
+        if (type === 'IN') {
+            document.getElementById('modalTitle').textContent = 'Konfirmasi Clock-In & Penugasan Harian';
+            document.getElementById('modalSubTitle').textContent = 'Pilih stasiun bertugas, target visit/closing & ambil foto selfie';
+            formIn.classList.remove('hidden');
+            formOut.classList.add('hidden');
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Ambil Foto & Kirim Clock-In';
+
+            // Pre-check stasiun default sales
+            const defaultSelected = currentUser && currentUser.stasiun ? [currentUser.stasiun] : [];
+            renderStationCheckboxes('inStationContainer', 'inStationCheckbox', defaultSelected);
+
+            document.getElementById('inTargetVisit').value = '';
+            document.getElementById('inTargetClosingHc').value = '';
+            document.getElementById('inVisitKemana').value = '';
+
+        } else {
+            document.getElementById('modalTitle').textContent = 'Konfirmasi Clock-Out & Laporan Hasil Kerja';
+            document.getElementById('modalSubTitle').textContent = 'Pilih stasiun aktual, isi capaian Work Order & Head Count & ambil foto selfie';
+            formIn.classList.add('hidden');
+            formOut.classList.remove('hidden');
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Ambil Foto & Kirim Clock-Out';
+
+            // Pre-check stasiun yang dipilih saat Clock-In
+            let preSelectedOut = [];
+            if (salesTodayRecord && salesTodayRecord.stasiunIn) {
+                preSelectedOut = salesTodayRecord.stasiunIn.split(',').map(s => s.trim());
+            } else if (currentUser && currentUser.stasiun) {
+                preSelectedOut = [currentUser.stasiun];
+            }
+            renderStationCheckboxes('outStationContainer', 'outStationCheckbox', preSelectedOut);
+
+            document.getElementById('outVisitKemana').value = (salesTodayRecord && salesTodayRecord.visitKemanaIn) || '';
+            document.getElementById('outAktualWo').value = '';
+            document.getElementById('outAktualHc').value = '';
+            document.getElementById('outPendingWo').value = '';
+            onAktualWoChange(0);
+        }
+
         document.getElementById('cameraModal').classList.remove('hidden');
         document.getElementById('cameraModal').classList.add('flex');
         updateSubmitButtonState();
@@ -131,6 +298,108 @@
     }
 
     function captureAndSubmit() {
+        const payload = {
+            type: currentAttendanceType,
+            username: currentUser.username,
+            nama: currentUser.nama,
+            status: currentUser.status,
+            provinsi: currentUser.provinsi,
+            stasiun: currentUser.stasiun,
+            lat: currentLocation.lat,
+            lng: currentLocation.lng
+        };
+
+        if (currentAttendanceType === 'IN') {
+            const checkedStations = Array.from(document.querySelectorAll('input[name="inStationCheckbox"]:checked')).map(el => el.value);
+            if (checkedStations.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Stasiun Belum Dipilih', text: 'Pilih minimal satu stasiun penugasan hari ini.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            const targetVisit = document.getElementById('inTargetVisit').value.trim();
+            if (targetVisit === '') {
+                Swal.fire({ icon: 'warning', title: 'Target Kunjungan Wajib Diisi', text: 'Masukkan angka target kunjungan Anda hari ini.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            const targetClosingHc = document.getElementById('inTargetClosingHc').value.trim();
+            if (targetClosingHc === '') {
+                Swal.fire({ icon: 'warning', title: 'Target Closing Head Count Wajib Diisi', text: 'Masukkan angka target closing Head Count Anda hari ini.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            const visitKemana = document.getElementById('inVisitKemana').value.trim();
+            if (!visitKemana) {
+                Swal.fire({ icon: 'warning', title: 'Rencana Kunjungan Belum Diisi', text: 'Masukkan area/tujuan kunjungan Anda (contoh: rangkah, ploso, tmbk sari).', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            payload.stasiunIn = checkedStations;
+            payload.targetVisit = Number(targetVisit);
+            payload.targetClosingHc = Number(targetClosingHc);
+            payload.visitKemanaIn = visitKemana;
+
+        } else if (currentAttendanceType === 'OUT') {
+            const checkedStations = Array.from(document.querySelectorAll('input[name="outStationCheckbox"]:checked')).map(el => el.value);
+            if (checkedStations.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Stasiun Belum Dipilih', text: 'Pilih minimal satu stasiun yang telah Anda kunjungi.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            const visitKemanaOut = document.getElementById('outVisitKemana').value.trim();
+            if (!visitKemanaOut) {
+                Swal.fire({ icon: 'warning', title: 'Realisasi Kunjungan Belum Diisi', text: 'Masukkan area kunjungan yang telah Anda kunjungi hari ini.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+
+            const aktualWoVal = document.getElementById('outAktualWo').value.trim();
+            if (aktualWoVal === '') {
+                Swal.fire({ icon: 'warning', title: 'Realisasi Work Order Belum Diisi', text: 'Masukkan angka Realisasi Work Order yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                return;
+            }
+            const aktualWo = Number(aktualWoVal);
+
+            const aktualHcVal = document.getElementById('outAktualHc').value.trim();
+            if (aktualHcVal === '') {
+                Swal.fire({ icon: 'warning', title: 'Realisasi Head Count Belum Diisi', text: 'Masukkan angka Realisasi Closing Head Count yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                return;
+            }
+            const aktualHc = Number(aktualHcVal);
+
+            const pendingWoVal = document.getElementById('outPendingWo').value.trim();
+            if (pendingWoVal === '') {
+                Swal.fire({ icon: 'warning', title: 'Pending Work Order Belum Diisi', text: 'Masukkan angka Pending Work Order (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                return;
+            }
+            const pendingWo = Number(pendingWoVal);
+
+            // Validasi Customer ID sesuai jumlah Realisasi Work Order
+            let cidList = [];
+            if (aktualWo > 0) {
+                const cidInputs = Array.from(document.querySelectorAll('input[name="cidInputItem"]'));
+                for (let i = 0; i < cidInputs.length; i++) {
+                    const val = cidInputs[i].value.trim();
+                    if (!val) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Nomor Customer ID Belum Lengkap',
+                            text: `Harap isi nomor Customer ID #${i + 1} sesuai jumlah Realisasi Work Order (${aktualWo} data).`,
+                            confirmButtonColor: '#0284c7'
+                        });
+                        return;
+                    }
+                    cidList.push(val);
+                }
+            }
+
+            payload.stasiunOut = checkedStations;
+            payload.visitKemanaOut = visitKemanaOut;
+            payload.aktualWo = aktualWo;
+            payload.aktualHc = aktualHc;
+            payload.pendingWo = pendingWo;
+            payload.cidList = cidList;
+        }
+
         let finalImageBase64 = nativePhotoBase64;
         if (!finalImageBase64 && mediaStream) {
             const video = document.getElementById('cameraStream');
@@ -142,20 +411,20 @@
             finalImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
         }
 
-        closeAttendanceModal();
-        showLoading('Menyimpan foto ke Drive & mencatat koordinat...');
+        if (!finalImageBase64) {
+            Swal.fire({ icon: 'warning', title: 'Foto Belum Ada', text: 'Pastikan kamera aktif atau gunakan tombol Kamera HP.', confirmButtonColor: '#0f766e' });
+            return;
+        }
 
-        const payload = {
-            type: currentAttendanceType,
-            username: currentUser.username,
-            nama: currentUser.nama,
-            status: currentUser.status,
-            provinsi: currentUser.provinsi,
-            stasiun: currentUser.stasiun,
-            lat: currentLocation.lat,
-            lng: currentLocation.lng,
-            imageBase64: finalImageBase64
-        };
+        if (!currentLocation.lat || !currentLocation.lng) {
+            Swal.fire({ icon: 'warning', title: 'GPS Belum Siap', text: 'Titik koordinat GPS belum terdeteksi. Silakan klik tombol Refresh GPS.', confirmButtonColor: '#0f766e' });
+            return;
+        }
+
+        payload.imageBase64 = finalImageBase64;
+
+        closeAttendanceModal();
+        showLoading('Menyimpan laporan ke sistem & upload foto...');
 
         google.script.run.withSuccessHandler(res => {
             hideLoading();
