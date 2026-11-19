@@ -1,33 +1,39 @@
-<!-- TOP CLEAN LIGHT HEADER BAR (VANTUS ERP STYLE - h-14) -->
+<!-- TOP CLEAN LIGHT HEADER BAR (VANTUS ERP STYLE - h-16) -->
 <header
-    class="bg-white text-slate-800 h-14 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0 border-b border-slate-200/80 shadow-2xs">
-    <div class="flex items-center gap-3">
-        <!-- Mobile Sidebar Toggle -->
-        <button type="button" onclick="toggleMobileSidebar()"
-            class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+    class="bg-white text-slate-800 h-16 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0 border-b border-slate-200/80 shadow-2xs">
+    <div class="flex items-center gap-3.5 min-w-0">
+        <!-- Mobile Sidebar Toggle (For Admin/Manager on Mobile) -->
+        <button type="button" id="headerMobileNavBtn" onclick="toggleMobileSidebar()"
+            class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition shrink-0">
             <i class="fa-solid fa-bars text-sm"></i>
         </button>
 
-        <!-- Brand Info for Mobile -->
-        <div class="flex md:hidden items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center p-0.5">
-                <i class="fa-solid fa-bolt text-sky-600 text-xs"></i>
+        <!-- Brand Info for Mobile and Sales View (Hidden on Desktop for Admin because it's already in the Sidebar) -->
+        <div id="headerBrand" class="flex items-center gap-2.5 shrink-0">
+            <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center overflow-hidden p-0.5">
+                <img id="appLogoNav" src="https://lh3.googleusercontent.com/d/1uhCJGvX8gNfJ7yZpVr2bfCbElsmx_n33" alt="Logo" class="w-full h-full object-contain hidden"
+                    onload="this.classList.remove('hidden'); const i=this.nextElementSibling; if(i) i.classList.add('hidden');"
+                    onerror="this.classList.add('hidden'); const i=this.nextElementSibling; if(i) i.classList.remove('hidden');">
+                <i class="fa-solid fa-bolt text-sky-600 text-sm"></i>
             </div>
-            <span class="font-extrabold text-sm tracking-tight text-slate-900">STARLITE</span>
+            <div>
+                <span class="font-extrabold text-sm tracking-tight text-slate-900 block leading-tight">STARLITE</span>
+                <span class="text-[10px] font-semibold text-slate-400 block leading-tight">Field Ops & Presensi</span>
+            </div>
         </div>
 
-        <!-- Breadcrumbs & Dynamic Page Header (Desktop) -->
-        <div class="hidden md:flex flex-col">
-            <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+        <!-- Breadcrumbs & Dynamic Page Header (Desktop Admin Only) -->
+        <div id="adminBreadcrumbs" class="hidden md:flex flex-col min-w-0">
+            <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold tracking-wide">
                 <span id="adminBreadcrumbParent">Starlite Operations</span>
-                <span>/</span>
-                <span id="adminBreadcrumbChild" class="text-sky-700 font-semibold">Attendance Harian</span>
+                <i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i>
+                <span id="adminBreadcrumbChild" class="text-sky-600 font-bold">Attendance Harian</span>
             </div>
-            <h2 id="adminHeaderTitle" class="text-sm font-extrabold text-slate-900 tracking-tight leading-none mt-0.5">Attendance Harian</h2>
+            <h1 id="adminHeaderTitle" class="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight mt-0.5 truncate">Attendance Harian</h1>
         </div>
 
-        <!-- Hidden Top Nav Pills for Backward Compatibility -->
-        <nav id="adminTopNav" class="hidden">
+        <!-- Hidden Top Nav Pills for Backward Compatibility (NEVER DISPLAY VISUALLY) -->
+        <nav id="adminTopNav" style="display:none !important;" class="hidden" aria-hidden="true">
             <button onclick="switchAdminTab('tabMonitoring')" id="navBtn_tabMonitoring">Attendance Harian</button>
             <button onclick="switchAdminTab('tabBelumAbsen')" id="navBtn_tabBelumAbsen">
                 <span>Belum Clock-In</span>
@@ -45,7 +51,7 @@
     </div>
 
     <!-- Right Clock, User Info & Logout -->
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
         <!-- Live Real-Time Clock Badge -->
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200/90 px-3 py-1.5 rounded-xl shadow-2xs">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -53,10 +59,10 @@
         </div>
 
         <!-- User Info & Logout Button -->
-        <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-            <div class="hidden sm:block text-right leading-tight">
-                <p id="navUserName" class="text-xs font-bold text-slate-800"></p>
-                <p id="navUserSub" class="text-[10.5px] text-slate-500"></p>
+        <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+            <div class="hidden sm:block text-right leading-tight max-w-[150px]">
+                <p id="navUserName" class="text-xs font-bold text-slate-800 truncate"></p>
+                <p id="navUserSub" class="text-[10.5px] text-slate-400 truncate"></p>
             </div>
             <button onclick="handleLogout()" title="Keluar / Logout"
                 class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition shadow-2xs">

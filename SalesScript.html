@@ -109,7 +109,7 @@
                     if (rec.jamOut) {
                         badgePlan.textContent = 'Selesai Shift';
                         badgePlan.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
-                        summaryOut.innerHTML = `Work Order: <strong class="text-sky-700">${rec.aktualWo || 0}</strong> • Head Count: <strong class="text-indigo-700">${rec.aktualHc || 0}</strong> • Pending: <strong class="text-amber-700">${rec.pendingWo || 0}</strong>`;
+                        summaryOut.innerHTML = `WO: <strong class="text-sky-700">${rec.aktualWo || 0}</strong> • HC: <strong class="text-indigo-700">${rec.aktualHc || 0}</strong> • Pending WO: <strong class="text-amber-700">${rec.pendingWo || 0}</strong>`;
 
                         if (rec.cidList) {
                             cidSection.classList.remove('hidden');
@@ -200,7 +200,7 @@
         if (count <= 0) {
             container.innerHTML = `
                 <div class="text-xs text-slate-400 italic bg-white p-3 rounded-xl border border-slate-200 text-center">
-                    Tidak ada input Customer ID yang perlu diisi (Realisasi Work Order = 0).
+                    Tidak ada input Customer ID yang perlu diisi (Realisasi WO = 0).
                 </div>
             `;
             return;
@@ -268,7 +268,7 @@
 
         } else {
             document.getElementById('modalTitle').textContent = 'Konfirmasi Clock-Out & Laporan Hasil Kerja';
-            document.getElementById('modalSubTitle').textContent = 'Pilih stasiun aktual, isi capaian Work Order & Head Count & ambil foto selfie';
+            document.getElementById('modalSubTitle').textContent = 'Pilih stasiun aktual, isi capaian WO & HC & ambil foto selfie';
             formIn.classList.add('hidden');
             formOut.classList.remove('hidden');
             submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Ambil Foto & Kirim Clock-Out';
@@ -324,7 +324,7 @@
 
             const targetClosingHc = document.getElementById('inTargetClosingHc').value.trim();
             if (targetClosingHc === '') {
-                Swal.fire({ icon: 'warning', title: 'Target Closing Head Count Wajib Diisi', text: 'Masukkan angka target closing Head Count Anda hari ini.', confirmButtonColor: '#0284c7' });
+                Swal.fire({ icon: 'warning', title: 'Target Closing HC Wajib Diisi', text: 'Masukkan angka target closing HC Anda hari ini.', confirmButtonColor: '#0284c7' });
                 return;
             }
 
@@ -354,26 +354,26 @@
 
             const aktualWoVal = document.getElementById('outAktualWo').value.trim();
             if (aktualWoVal === '') {
-                Swal.fire({ icon: 'warning', title: 'Realisasi Work Order Belum Diisi', text: 'Masukkan angka Realisasi Work Order yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                Swal.fire({ icon: 'warning', title: 'Realisasi WO Belum Diisi', text: 'Masukkan angka Realisasi WO yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
                 return;
             }
             const aktualWo = Number(aktualWoVal);
 
             const aktualHcVal = document.getElementById('outAktualHc').value.trim();
             if (aktualHcVal === '') {
-                Swal.fire({ icon: 'warning', title: 'Realisasi Head Count Belum Diisi', text: 'Masukkan angka Realisasi Closing Head Count yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                Swal.fire({ icon: 'warning', title: 'Realisasi HC Belum Diisi', text: 'Masukkan angka Realisasi Closing HC yang didapat hari ini (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
                 return;
             }
             const aktualHc = Number(aktualHcVal);
 
             const pendingWoVal = document.getElementById('outPendingWo').value.trim();
             if (pendingWoVal === '') {
-                Swal.fire({ icon: 'warning', title: 'Pending Work Order Belum Diisi', text: 'Masukkan angka Pending Work Order (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
+                Swal.fire({ icon: 'warning', title: 'Pending WO Belum Diisi', text: 'Masukkan angka Pending WO (bisa 0 jika tidak ada).', confirmButtonColor: '#0284c7' });
                 return;
             }
             const pendingWo = Number(pendingWoVal);
 
-            // Validasi Customer ID sesuai jumlah Realisasi Work Order
+            // Validasi Customer ID sesuai jumlah Realisasi WO
             let cidList = [];
             if (aktualWo > 0) {
                 const cidInputs = Array.from(document.querySelectorAll('input[name="cidInputItem"]'));
@@ -383,7 +383,7 @@
                         Swal.fire({
                             icon: 'warning',
                             title: 'Nomor Customer ID Belum Lengkap',
-                            text: `Harap isi nomor Customer ID #${i + 1} sesuai jumlah Realisasi Work Order (${aktualWo} data).`,
+                            text: `Harap isi nomor Customer ID #${i + 1} sesuai jumlah Realisasi WO (${aktualWo} data).`,
                             confirmButtonColor: '#0284c7'
                         });
                         return;

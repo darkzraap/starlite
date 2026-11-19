@@ -2,57 +2,66 @@
 <div id="adminView" class="hidden space-y-5">
 
     <!-- Mobile Tab Switcher (Modern Scrollable Pills with Full Text) -->
-    <div class="flex md:hidden gap-1.5 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
-        <button onclick="switchAdminTab('tabMonitoring')"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Attendance Harian</button>
-        <button onclick="switchAdminTab('tabBelumAbsen')"
+    <div class="flex md:hidden gap-1.5 overflow-x-auto pb-2 pt-0.5 no-scrollbar">
+        <button id="mobileTabBtn_tabMonitoring" onclick="switchAdminTab('tabMonitoring')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#0284c7] border border-sky-600 text-white shrink-0 shadow-sm">Attendance Harian</button>
+        <button id="mobileTabBtn_tabBelumAbsen" onclick="switchAdminTab('tabBelumAbsen')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-rose-600 shrink-0 shadow-2xs">Belum Clock-In</button>
-        <button onclick="switchAdminTab('tabSummary')"
+        <button id="mobileTabBtn_tabSummary" onclick="switchAdminTab('tabSummary')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-amber-700 shrink-0 shadow-2xs">Rekap Akumulasi</button>
-        <button onclick="switchAdminTab('tabAllLogs')"
+        <button id="mobileTabBtn_tabAllLogs" onclick="switchAdminTab('tabAllLogs')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Semua Database</button>
         <button id="mobileTabBtn_tabUsers" onclick="switchAdminTab('tabUsers')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs">Kelola Akun Personel</button>
         <button id="mobileTabBtn_tabStations" onclick="switchAdminTab('tabStations')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-sky-700 shrink-0 shadow-2xs">Database Stasiun</button>
-        <button onclick="switchAdminTab('tabSettings')"
+        <button id="mobileTabBtn_tabSettings" onclick="switchAdminTab('tabSettings')"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-sky-700 shrink-0 shadow-2xs">Pengaturan Jam Kerja</button>
     </div>
 
-    <!-- VANTUS TOP ACTION & DATE STEPPER BAR -->
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-            <h1 id="adminPageTitle" class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Attendance Harian</h1>
+    <!-- Hidden compatibility hook for adminPageTitle so JS won't break if referenced -->
+    <span id="adminPageTitle" class="sr-only">Attendance Harian</span>
 
-            <div class="flex items-center bg-white border border-slate-200/90 rounded-xl shadow-2xs px-2 py-1">
-                <button onclick="stepAdminDate(-1)"
-                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition">
-                    <i class="fa-solid fa-chevron-left text-[11px]"></i>
+    <!-- VANTUS TOP ACTION & DATE STEPPER TOOLBAR -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white p-3.5 sm:px-5 sm:py-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <!-- Left: Date Stepper & Today Shortcut -->
+        <div class="flex items-center gap-2">
+            <div class="flex items-center bg-slate-50 border border-slate-200/90 rounded-xl px-2 py-1 shadow-inner">
+                <button type="button" onclick="stepAdminDate(-1)" title="Hari Sebelumnya"
+                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-white transition">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
                 </button>
-                <input type="date" id="adminDateFilter" onchange="onHeaderDateChange()"
-                    class="px-2 py-0.5 text-xs font-extrabold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
-                <button onclick="stepAdminDate(1)"
-                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition">
-                    <i class="fa-solid fa-chevron-right text-[11px]"></i>
+                <div class="flex items-center gap-1.5 px-2">
+                    <i class="fa-regular fa-calendar text-sky-600 text-xs"></i>
+                    <input type="date" id="adminDateFilter" onchange="onHeaderDateChange()"
+                        class="text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-none cursor-pointer">
+                </div>
+                <button type="button" onclick="stepAdminDate(1)" title="Hari Berikutnya"
+                    class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-white transition">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
                 </button>
             </div>
+            <button type="button" onclick="setAdminDateToday()"
+                class="px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-100 text-xs font-bold transition">
+                Hari Ini
+            </button>
         </div>
 
         <!-- Right Action Buttons -->
-        <div class="flex items-center gap-2">
-            <button onclick="switchAdminTab('tabSettings')"
-                class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="switchAdminTab('tabSettings')"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 text-xs font-semibold transition">
                 <i class="fa-regular fa-clock text-sky-600"></i>
-                <span>Clock-In: <strong id="headerBadgeMaxIn">09:00</strong> | Clock-Out: <strong id="headerBadgeMinOut">18:00</strong></span>
+                <span>Clock-In: <strong id="headerBadgeMaxIn" class="text-slate-800">09:00</strong> | Clock-Out: <strong id="headerBadgeMinOut" class="text-slate-800">18:00</strong></span>
             </button>
-            <button onclick="loadAdminData()"
-                class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
-                <i class="fa-solid fa-rotate text-slate-500"></i>
+            <button type="button" onclick="loadAdminData()"
+                class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-bold shadow-2xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-rotate text-slate-400"></i>
                 <span>Refresh Data</span>
             </button>
-            <button id="btnHeaderTambahSales" onclick="switchAdminTab('tabUsers')"
+            <button type="button" id="btnHeaderTambahSales" onclick="switchAdminTab('tabUsers'); openUserModal();"
                 class="px-4 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-xl text-xs font-bold shadow-sm shadow-sky-500/20 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-user-plus"></i>
+                <i class="fa-solid fa-user-plus text-xs"></i>
                 <span>Tambah Personel Sales</span>
             </button>
         </div>
@@ -144,7 +153,7 @@
             </button>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
@@ -152,7 +161,7 @@
                         <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
                         <th class="tiimi-th">Stasiun & Wilayah Kunjungan</th>
-                        <th class="tiimi-th">Target vs Realisasi (Work Order & Head Count)</th>
+                        <th class="tiimi-th">Target vs Realisasi (WO & HC)</th>
                         <th class="tiimi-th">Waktu Clock-In & Clock-Out</th>
                         <th class="tiimi-th">Status Masuk</th>
                         <th class="tiimi-th">Status Pulang</th>
@@ -225,7 +234,7 @@
             </div>
             <button onclick="resetTableFilters('belumAbsen')" class="text-xs text-sky-700 hover:text-sky-800 font-semibold transition">Reset Filter</button>
         </div>
-        <div class="overflow-x-auto">
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
@@ -274,7 +283,7 @@
         <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
             <div>
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Database Akumulasi Kehadiran & Capaian Periode</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">Pilih tanggal awal & akhir untuk melihat total Hadir Tepat Waktu, Terlambat, Target vs Realisasi Work Order & Head Count.</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Pilih tanggal awal & akhir untuk melihat total Hadir Tepat Waktu, Terlambat, Target vs Realisasi WO & HC.</p>
             </div>
 
             <!-- Filter Rentang Tanggal Akumulasi -->
@@ -296,7 +305,7 @@
             </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
@@ -310,8 +319,8 @@
                         <th class="tiimi-th text-center">Hadir Terlambat</th>
                         <th class="tiimi-th text-center">Belum Clock-Out</th>
                         <th class="tiimi-th text-center">Selesai Clock-Out (Lengkap)</th>
-                        <th class="tiimi-th text-center">Target & Realisasi Work Order</th>
-                        <th class="tiimi-th text-center">Target & Realisasi Closing Head Count</th>
+                        <th class="tiimi-th text-center">Target & Realisasi WO</th>
+                        <th class="tiimi-th text-center">Target & Realisasi Closing HC</th>
                         <th class="tiimi-th text-center">Detail Personel</th>
                     </tr>
                     <tr>
@@ -370,7 +379,7 @@
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Seluruh Riwayat Database Absensi (All Records)</h3>
             <button onclick="resetTableFilters('allLogs')" class="text-xs text-sky-700 hover:underline font-semibold">Reset Filter Kolom</button>
         </div>
-        <div class="overflow-x-auto">
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
@@ -379,7 +388,7 @@
                         <th class="tiimi-th">Status Kontrak</th>
                         <th class="tiimi-th">Provinsi</th>
                         <th class="tiimi-th">Stasiun & Wilayah Kunjungan</th>
-                        <th class="tiimi-th">Target vs Realisasi (Work Order & Head Count)</th>
+                        <th class="tiimi-th">Target vs Realisasi (WO & HC)</th>
                         <th class="tiimi-th">Waktu Clock-In & Clock-Out</th>
                         <th class="tiimi-th">Status Masuk</th>
                         <th class="tiimi-th">Status Pulang</th>
@@ -446,132 +455,78 @@
         </div>
     </div>
 
-    <!-- ================= TAB 5: KELOLA AKUN SALES (CRUD + TOMBOL DETAIL + CASCADE DELETE) ================= -->
-    <div id="tabUsers" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs h-fit space-y-4">
-            <h3 id="formUserTitle" class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5">Tambah Personel Sales / Pengguna Baru</h3>
-            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-3 text-xs">
-                <input type="hidden" id="usrId">
-                <div>
-                    <label class="text-slate-600 font-semibold block mb-1">Nama Lengkap Personel</label>
-                    <input type="text" id="usrNama" required placeholder="Contoh: Bagus Fikri"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                </div>
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div>
-                        <label class="text-slate-600 font-semibold block mb-1">Username Login</label>
-                        <input type="text" id="usrUsername" required placeholder="bagus01"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label class="text-slate-600 font-semibold block mb-1">Password</label>
-                        <input type="text" id="usrPassword" required placeholder="Min. 4 karakter"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div>
-                        <label class="text-slate-600 font-semibold block mb-1">Role Sistem</label>
-                        <select id="usrRole"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                            <option value="Sales">Sales</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Controller">Controller</option>
-                            <option value="Site Manager">Site Manager</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-slate-600 font-semibold block mb-1">Status Kontrak</label>
-                        <select id="usrStatus"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                            <option value="Inhouse">Inhouse</option>
-                            <option value="Freelance">Freelance</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-slate-600 font-semibold block mb-1">Provinsi Penugasan</label>
-                    <input type="text" id="usrProvinsi" required placeholder="Contoh: Jawa Barat"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                </div>
-                <div>
-                    <label class="text-slate-600 font-semibold block mb-1">Stasiun Pangkalan / Penugasan</label>
-                    <input type="text" id="usrStasiun" list="stationOptionsList" oninput="onUserStationInput(this.value)" required placeholder="Pilih / ketik nama stasiun..."
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                    <datalist id="stationOptionsList"></datalist>
-                </div>
-                <div class="flex gap-2.5 pt-2">
-                    <button type="submit"
-                        class="flex-1 py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20">
-                        <i class="fa-solid fa-check mr-1"></i> Simpan Data Akun
-                    </button>
-                    <button type="button" onclick="resetUserForm()"
-                        class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
-                        Batal
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col">
-            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+    <!-- ================= TAB 5: KELOLA AKUN SALES (CRUD FULL WIDTH TABLE + MODAL POPUP) ================= -->
+    <div id="tabUsers" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-sky-500"></div>
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Database Akun Personel & Administrator</h3>
-                <button onclick="resetTableFilters('users')" class="text-xs text-sky-700 hover:underline font-semibold">Reset Filter</button>
+                <span class="text-[11px] text-slate-400 font-medium">• Master akun sistem</span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="tiimi-th">Nama Personel Lengkap</th>
-                            <th class="tiimi-th">Username & Password</th>
-                            <th class="tiimi-th">Role Sistem</th>
-                            <th class="tiimi-th">Status Kontrak</th>
-                            <th class="tiimi-th">Provinsi</th>
-                            <th class="tiimi-th">Stasiun Penugasan</th>
-                            <th class="tiimi-th text-center">Detail Riwayat & Aksi</th>
-                        </tr>
-                        <tr>
-                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_nama"
-                                    oninput="updateTableFilter('users', 'nama', this.value)"
-                                    placeholder="Filter nama..." class="tiimi-filter-input"></th>
-                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_username"
-                                    oninput="updateTableFilter('users', 'username', this.value)"
-                                    placeholder="Filter user..." class="tiimi-filter-input"></th>
-                            <th class="tiimi-filter-cell">
-                                <select id="flt_users_role"
-                                    onchange="updateTableFilter('users', 'role', this.value)"
-                                    class="tiimi-filter-input">
-                                    <option value="">Semua</option>
-                                    <option value="Sales">Sales</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="Controller">Controller</option>
-                                    <option value="Site Manager">Site Manager</option>
-                                </select>
-                            </th>
-                            <th class="tiimi-filter-cell">
-                                <select id="flt_users_status"
-                                    onchange="updateTableFilter('users', 'status', this.value)"
-                                    class="tiimi-filter-input">
-                                    <option value="">Semua</option>
-                                    <option value="Inhouse">Inhouse</option>
-                                    <option value="Freelance">Freelance</option>
-                                </select>
-                            </th>
-                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_provinsi"
-                                    oninput="updateTableFilter('users', 'provinsi', this.value)"
-                                    placeholder="Provinsi..." class="tiimi-filter-input"></th>
-                            <th class="tiimi-filter-cell"><input type="text" id="flt_users_stasiun"
-                                    oninput="updateTableFilter('users', 'stasiun', this.value)"
-                                    placeholder="Stasiun..." class="tiimi-filter-input"></th>
-                            <th class="tiimi-filter-cell"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody_users"></tbody>
-                </table>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btnTabTambahUser" onclick="openUserModal()"
+                    class="px-3.5 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-xl text-xs font-bold shadow-sm shadow-sky-500/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-plus text-xs"></i>
+                    <span>+ Tambah Akun Personel</span>
+                </button>
+                <button onclick="resetTableFilters('users')" class="text-xs text-sky-700 hover:text-sky-800 font-semibold transition">
+                    <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
+                </button>
             </div>
-            <div id="pager_users"
-                class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-            </div>
+        </div>
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th">Nama Personel Lengkap</th>
+                        <th class="tiimi-th">Username & Password</th>
+                        <th class="tiimi-th">Role Sistem</th>
+                        <th class="tiimi-th">Status Kontrak</th>
+                        <th class="tiimi-th">Provinsi</th>
+                        <th class="tiimi-th">Stasiun Penugasan</th>
+                        <th class="tiimi-th text-center">Detail Riwayat & Aksi</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_users_nama"
+                                oninput="updateTableFilter('users', 'nama', this.value)"
+                                placeholder="Filter nama..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_users_username"
+                                oninput="updateTableFilter('users', 'username', this.value)"
+                                placeholder="Filter user..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_users_role"
+                                onchange="updateTableFilter('users', 'role', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Sales">Sales</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Controller">Controller</option>
+                                <option value="Site Manager">Site Manager</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell">
+                            <select id="flt_users_status"
+                                onchange="updateTableFilter('users', 'status', this.value)"
+                                class="tiimi-filter-input">
+                                <option value="">Semua</option>
+                                <option value="Inhouse">Inhouse</option>
+                                <option value="Freelance">Freelance</option>
+                            </select>
+                        </th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_users_provinsi"
+                                oninput="updateTableFilter('users', 'provinsi', this.value)"
+                                placeholder="Provinsi..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"><input type="text" id="flt_users_stasiun"
+                                oninput="updateTableFilter('users', 'stasiun', this.value)"
+                                placeholder="Stasiun..." class="tiimi-filter-input"></th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_users"></tbody>
+            </table>
+        </div>
+        <div id="pager_users"
+            class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
         </div>
     </div>
 
@@ -614,81 +569,56 @@
         </div>
     </div>
 
-    <!-- ================= TAB 7: KELOLA DATABASE STASIUN (ADMIN ONLY) ================= -->
-    <div id="tabStations" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Form Tambah/Edit Stasiun -->
-        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs h-fit space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                <h3 id="formStationTitle" class="text-xs font-bold text-slate-800">Tambah Stasiun Baru</h3>
-                <span class="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">Admin Only</span>
-            </div>
-            <form id="stationForm" onsubmit="handleSaveStation(event)" class="space-y-3 text-xs">
-                <input type="hidden" id="stnId">
-                <div>
-                    <label class="text-slate-600 font-semibold block mb-1">Kota / Wilayah Penugasan</label>
-                    <input type="text" id="stnKota" required placeholder="Contoh: Bandung, Jakarta, dll."
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                </div>
-                <div>
-                    <label class="text-slate-600 font-semibold block mb-1">Nama Stasiun Lengkap</label>
-                    <input type="text" id="stnNama" required placeholder="Contoh: Stasiun Bandung, Stasiun Gambir"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:outline-none transition">
-                </div>
-                <div class="flex gap-2.5 pt-2">
-                    <button type="submit"
-                        class="flex-1 py-2.5 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20 flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-check text-xs"></i>
-                        <span>Simpan Data Stasiun</span>
-                    </button>
-                    <button type="button" onclick="resetStationForm()"
-                        class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
-                        Batal
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Tabel Database Stasiun -->
-        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col">
-            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+    <!-- ================= TAB 7: KELOLA DATABASE STASIUN (ADMIN ONLY FULL WIDTH TABLE + MODAL POPUP) ================= -->
+    <div id="tabStations" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-sky-500"></div>
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Master Data Stasiun & Kota</h3>
                     <p class="text-[11px] text-slate-400 mt-0.5">Daftar stasiun dan titik penugasan resmi sales</p>
                 </div>
-                <button onclick="resetTableFilters('stations')" class="text-xs text-sky-700 hover:underline font-semibold">
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btnTabTambahStation" onclick="openStationModal()"
+                    class="px-3.5 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-xl text-xs font-bold shadow-sm shadow-sky-500/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-train text-xs"></i>
+                    <span>+ Tambah Stasiun Baru</span>
+                </button>
+                <button onclick="resetTableFilters('stations')" class="text-xs text-sky-700 hover:text-sky-800 font-semibold transition">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Reset Filter
                 </button>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="tiimi-th w-28">ID Stasiun</th>
-                            <th class="tiimi-th">Kota / Wilayah</th>
-                            <th class="tiimi-th">Nama Stasiun</th>
-                            <th class="tiimi-th text-center w-28">Aksi</th>
-                        </tr>
-                        <tr>
-                            <th class="tiimi-filter-cell"></th>
-                            <th class="tiimi-filter-cell">
-                                <input type="text" id="flt_stations_kota"
-                                    oninput="updateTableFilter('stations', 'kota', this.value)"
-                                    placeholder="Filter kota..." class="tiimi-filter-input">
-                            </th>
-                            <th class="tiimi-filter-cell">
-                                <input type="text" id="flt_stations_namaStasiun"
-                                    oninput="updateTableFilter('stations', 'namaStasiun', this.value)"
-                                    placeholder="Filter nama stasiun..." class="tiimi-filter-input">
-                            </th>
-                            <th class="tiimi-filter-cell"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody_stations"></tbody>
-                </table>
-            </div>
-            <div id="pager_stations"
-                class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-            </div>
+        </div>
+        <div class="table-sticky-container overflow-auto max-h-[calc(100vh-280px)] min-h-[360px] relative">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="tiimi-th w-28">ID Stasiun</th>
+                        <th class="tiimi-th">Kota / Wilayah</th>
+                        <th class="tiimi-th">Nama Stasiun</th>
+                        <th class="tiimi-th text-center w-28">Aksi</th>
+                    </tr>
+                    <tr>
+                        <th class="tiimi-filter-cell"></th>
+                        <th class="tiimi-filter-cell">
+                            <input type="text" id="flt_stations_kota"
+                                oninput="updateTableFilter('stations', 'kota', this.value)"
+                                placeholder="Filter kota..." class="tiimi-filter-input">
+                        </th>
+                        <th class="tiimi-filter-cell">
+                            <input type="text" id="flt_stations_namaStasiun"
+                                oninput="updateTableFilter('stations', 'namaStasiun', this.value)"
+                                placeholder="Filter nama stasiun..." class="tiimi-filter-input">
+                        </th>
+                        <th class="tiimi-filter-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_stations"></tbody>
+            </table>
+        </div>
+        <div id="pager_stations"
+            class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
         </div>
     </div>
 

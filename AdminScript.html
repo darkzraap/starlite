@@ -9,6 +9,13 @@
         onHeaderDateChange();
     }
 
+    function setAdminDateToday() {
+        const input = document.getElementById('adminDateFilter');
+        const today = new Date().toISOString().split('T')[0];
+        input.value = today;
+        onHeaderDateChange();
+    }
+
     function onHeaderDateChange() {
         const selectedDate = document.getElementById('adminDateFilter').value;
         // Sinkronkan filter tanggal di tab Rekap Akumulasi agar langsung melihat akumulasi tanggal tersebut
@@ -51,6 +58,10 @@
             if (sideBtn) {
                 sideBtn.className = 'vantus-nav-item';
             }
+            const mobBtn = document.getElementById(`mobileTabBtn_${id}`);
+            if (mobBtn) {
+                mobBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shrink-0 shadow-2xs';
+            }
         });
 
         const activeEl = document.getElementById(tabId);
@@ -71,6 +82,10 @@
         const activeSide = document.getElementById(`sideBtn_${tabId}`);
         if (activeSide) {
             activeSide.className = 'vantus-nav-item active';
+        }
+        const activeMob = document.getElementById(`mobileTabBtn_${tabId}`);
+        if (activeMob) {
+            activeMob.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#0284c7] border border-sky-600 text-white shrink-0 shadow-sm shadow-sky-600/30';
         }
     }
 
@@ -343,7 +358,7 @@
             hideLoading();
             if (res.success) {
                 Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
-                resetUserForm();
+                closeUserModal();
                 loadAdminData();
             } else {
                 Swal.fire({ icon: 'error', title: 'Gagal', text: res.message, confirmButtonColor: '#0f766e' });
@@ -352,6 +367,28 @@
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0f766e' });
         }).saveUserAdmin(userObj, currentUser ? currentUser.role : '');
+    }
+
+    function openUserModal(u) {
+        const m = document.getElementById('modalUserForm');
+        if (u) {
+            editUser(u);
+        } else {
+            resetUserForm();
+        }
+        if (m) {
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+    }
+
+    function closeUserModal() {
+        const m = document.getElementById('modalUserForm');
+        if (m) {
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+        resetUserForm();
     }
 
     function editUser(u) {
@@ -364,11 +401,17 @@
         document.getElementById('usrStatus').value = u.status;
         document.getElementById('usrProvinsi').value = u.provinsi;
         document.getElementById('usrStasiun').value = u.stasiun;
+        const m = document.getElementById('modalUserForm');
+        if (m) {
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
     }
 
     function resetUserForm() {
-        document.getElementById('formUserTitle').textContent = 'Tambah User / Sales Baru';
-        document.getElementById('userForm').reset();
+        document.getElementById('formUserTitle').textContent = 'Tambah Personel Sales / Pengguna Baru';
+        const form = document.getElementById('userForm');
+        if (form) form.reset();
         document.getElementById('usrId').value = '';
     }
 
@@ -403,6 +446,28 @@
     }
 
     // ================= ADMIN STATIONS CRUD (ADMIN ONLY) =================
+    function openStationModal(st) {
+        const m = document.getElementById('modalStationForm');
+        if (st) {
+            editStation(st);
+        } else {
+            resetStationForm();
+        }
+        if (m) {
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+    }
+
+    function closeStationModal() {
+        const m = document.getElementById('modalStationForm');
+        if (m) {
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+        resetStationForm();
+    }
+
     function handleSaveStation(e) {
         e.preventDefault();
         const roleLower = String(currentUser && currentUser.role || '').toLowerCase();
@@ -422,7 +487,7 @@
             hideLoading();
             if (res.success) {
                 Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
-                resetStationForm();
+                closeStationModal();
                 if (res.stations) {
                     tableState.stations.data = res.stations;
                     updateStationDatalist();
@@ -444,13 +509,17 @@
         document.getElementById('stnId').value = st.id;
         document.getElementById('stnKota').value = st.kota;
         document.getElementById('stnNama').value = st.namaStasiun;
-        const formEl = document.getElementById('stationForm');
-        if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+        const m = document.getElementById('modalStationForm');
+        if (m) {
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
     }
 
     function resetStationForm() {
         document.getElementById('formStationTitle').textContent = 'Tambah Stasiun Baru';
-        document.getElementById('stationForm').reset();
+        const form = document.getElementById('stationForm');
+        if (form) form.reset();
         document.getElementById('stnId').value = '';
     }
 

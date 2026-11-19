@@ -20,10 +20,15 @@
         // Muat Logo Aplikasi
         google.script.run.withSuccessHandler(url => {
             if (url) {
-                const logoLogin = document.getElementById('appLogoLogin');
-                const logoNav = document.getElementById('appLogoNav');
-                if (logoLogin) logoLogin.src = url;
-                if (logoNav) logoNav.src = url;
+                const ids = ['appLogoLogin', 'appLogoNav', 'appLogoSidebar', 'appLogoTopLeft'];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.src = url;
+                        el.classList.remove('hidden');
+                        if (el.nextElementSibling) el.nextElementSibling.classList.add('hidden');
+                    }
+                });
             }
         }).getLogoUrl();
 
@@ -181,8 +186,14 @@
         const isRestrictedManager = roleLower === 'controller' || roleLower === 'site manager';
 
         if (isAdminOrManager) {
-            document.getElementById('adminTopNav').classList.remove('hidden');
             document.getElementById('adminLeftSidebar').classList.remove('hidden');
+            const headerBrand = document.getElementById('headerBrand');
+            if (headerBrand) headerBrand.classList.add('md:hidden');
+            const adminBreadcrumbs = document.getElementById('adminBreadcrumbs');
+            if (adminBreadcrumbs) adminBreadcrumbs.classList.remove('hidden');
+            const mobileToggle = document.getElementById('headerMobileNavBtn');
+            if (mobileToggle) mobileToggle.classList.remove('hidden');
+
             document.getElementById('salesView').classList.add('hidden');
             document.getElementById('adminView').classList.remove('hidden');
 
@@ -191,20 +202,24 @@
             const sideUsers = document.getElementById('sideBtn_tabUsers');
             const btnTambah = document.getElementById('btnHeaderTambahSales');
             const mobileUsers = document.getElementById('mobileTabBtn_tabUsers');
+            const btnTabUser = document.getElementById('btnTabTambahUser');
 
             const navStations = document.getElementById('navBtn_tabStations');
             const sideStations = document.getElementById('sideBtn_tabStations');
             const mobileStations = document.getElementById('mobileTabBtn_tabStations');
+            const btnTabStation = document.getElementById('btnTabTambahStation');
 
             if (isRestrictedManager) {
                 if (navUsers) navUsers.classList.add('hidden');
                 if (sideUsers) sideUsers.classList.add('hidden');
                 if (btnTambah) btnTambah.classList.add('hidden');
                 if (mobileUsers) mobileUsers.classList.add('hidden');
+                if (btnTabUser) btnTabUser.classList.add('hidden');
 
                 if (navStations) navStations.classList.add('hidden');
                 if (sideStations) sideStations.classList.add('hidden');
                 if (mobileStations) mobileStations.classList.add('hidden');
+                if (btnTabStation) btnTabStation.classList.add('hidden');
 
                 switchAdminTab('tabMonitoring');
             } else {
@@ -212,16 +227,25 @@
                 if (sideUsers) sideUsers.classList.remove('hidden');
                 if (btnTambah) btnTambah.classList.remove('hidden');
                 if (mobileUsers) mobileUsers.classList.remove('hidden');
+                if (btnTabUser) btnTabUser.classList.remove('hidden');
 
                 if (navStations) navStations.classList.remove('hidden');
                 if (sideStations) sideStations.classList.remove('hidden');
                 if (mobileStations) mobileStations.classList.remove('hidden');
+                if (btnTabStation) btnTabStation.classList.remove('hidden');
             }
 
             loadAdminData();
         } else {
-            document.getElementById('adminTopNav').classList.add('hidden');
+            // SALES VIEW
             document.getElementById('adminLeftSidebar').classList.add('hidden');
+            const headerBrand = document.getElementById('headerBrand');
+            if (headerBrand) headerBrand.classList.remove('md:hidden');
+            const adminBreadcrumbs = document.getElementById('adminBreadcrumbs');
+            if (adminBreadcrumbs) adminBreadcrumbs.classList.add('hidden');
+            const mobileToggle = document.getElementById('headerMobileNavBtn');
+            if (mobileToggle) mobileToggle.classList.add('hidden');
+
             document.getElementById('adminView').classList.add('hidden');
             document.getElementById('salesView').classList.remove('hidden');
             loadSalesDashboard();

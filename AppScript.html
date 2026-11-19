@@ -188,18 +188,18 @@
                     const targetActualCell = `
                         <div class="flex flex-col gap-1 text-[11.5px] whitespace-nowrap">
                           <div class="inline-flex items-center gap-1.5">
-                            <span class="text-slate-400 font-medium">Work Order:</span>
+                            <span class="text-slate-400 font-medium">WO:</span>
                             <span class="font-bold text-slate-700">Target ${l.targetVisit !== '' && l.targetVisit !== undefined ? l.targetVisit : '-'}</span>
                             <span class="text-slate-300">/</span>
                             <span class="font-bold text-sky-700">Realisasi ${l.aktualWo !== '' && l.aktualWo !== undefined ? l.aktualWo : '-'}</span>
                           </div>
                           <div class="inline-flex items-center gap-1.5">
-                            <span class="text-slate-400 font-medium">Head Count:</span>
+                            <span class="text-slate-400 font-medium">HC:</span>
                             <span class="font-bold text-slate-700">Target ${l.targetClosingHc !== '' && l.targetClosingHc !== undefined ? l.targetClosingHc : '-'}</span>
                             <span class="text-slate-300">/</span>
                             <span class="font-bold text-indigo-700">Realisasi ${l.aktualHc !== '' && l.aktualHc !== undefined ? l.aktualHc : '-'}</span>
                           </div>
-                          ${l.pendingWo !== '' && l.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending Work Order: <strong>${l.pendingWo}</strong></div>` : ''}
+                          ${l.pendingWo !== '' && l.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending WO: <strong>${l.pendingWo}</strong></div>` : ''}
                         </div>
                     `;
 
@@ -376,8 +376,8 @@
 
                     const targetActualLabel = (h.targetVisit !== '' || h.aktualWo !== '') 
                         ? `<div class="text-xs text-slate-700 leading-snug space-y-0.5">
-                             <div>Work Order: <span class="font-bold text-slate-600">Target ${h.targetVisit || '-'}</span> / <span class="font-bold text-sky-700">Realisasi ${h.aktualWo || '-'}</span></div>
-                             <div>Head Count: <span class="font-bold text-slate-600">Target ${h.targetClosingHc || '-'}</span> / <span class="font-bold text-indigo-700">Realisasi ${h.aktualHc || '-'}</span></div>
+                             <div>WO: <span class="font-bold text-slate-600">Target ${h.targetVisit || '-'}</span> / <span class="font-bold text-sky-700">Realisasi ${h.aktualWo || '-'}</span></div>
+                             <div>HC: <span class="font-bold text-slate-600">Target ${h.targetClosingHc || '-'}</span> / <span class="font-bold text-indigo-700">Realisasi ${h.aktualHc || '-'}</span></div>
                            </div>`
                         : '<span class="text-slate-400 text-xs">-</span>';
 
@@ -444,11 +444,11 @@
                             <div class="space-y-1 text-xs bg-sky-50/40 p-2.5 rounded-xl border border-sky-100">
                                 <div class="flex items-center justify-between">
                                     <span class="text-slate-500">Target Kunjungan: <strong class="text-slate-700">${h.targetVisit || '-'}</strong></span>
-                                    <span class="text-sky-800 font-bold">Realisasi Work Order: ${h.aktualWo || '-'}</span>
+                                    <span class="text-sky-800 font-bold">Realisasi WO: ${h.aktualWo || '-'}</span>
                                 </div>
                                 <div class="flex items-center justify-between pt-0.5 border-t border-sky-100/60">
-                                    <span class="text-slate-500">Target Closing Head Count: <strong class="text-slate-700">${h.targetClosingHc || '-'}</strong></span>
-                                    <span class="text-indigo-800 font-bold">Realisasi Head Count: ${h.aktualHc || '-'}</span>
+                                    <span class="text-slate-500">Target Closing HC: <strong class="text-slate-700">${h.targetClosingHc || '-'}</strong></span>
+                                    <span class="text-indigo-800 font-bold">Realisasi HC: ${h.aktualHc || '-'}</span>
                                 </div>
                             </div>` : ''}
 
@@ -500,18 +500,18 @@
                       <td class="tiimi-td whitespace-nowrap">
                         <div class="flex flex-col gap-1 text-[11.5px]">
                           <div class="inline-flex items-center gap-1.5">
-                            <span class="text-slate-400 text-xs">Work Order:</span>
+                            <span class="text-slate-400 text-xs">WO:</span>
                             <span class="px-1.5 py-0.5 bg-slate-100 rounded font-bold text-slate-700">Target: ${r.targetVisit !== '' && r.targetVisit !== undefined ? r.targetVisit : '-'}</span>
                             <span class="text-slate-300">/</span>
                             <span class="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded font-bold">Realisasi: ${r.aktualWo !== '' && r.aktualWo !== undefined ? r.aktualWo : '-'}</span>
                           </div>
                           <div class="inline-flex items-center gap-1.5">
-                            <span class="text-slate-400 text-xs">Head Count:</span>
+                            <span class="text-slate-400 text-xs">HC:</span>
                             <span class="px-1.5 py-0.5 bg-slate-100 rounded font-bold text-slate-700">Target: ${r.targetClosingHc !== '' && r.targetClosingHc !== undefined ? r.targetClosingHc : '-'}</span>
                             <span class="text-slate-300">/</span>
                             <span class="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-bold">Realisasi: ${r.aktualHc !== '' && r.aktualHc !== undefined ? r.aktualHc : '-'}</span>
                           </div>
-                          ${r.pendingWo !== '' && r.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending Work Order: <strong>${r.pendingWo}</strong></div>` : ''}
+                          ${r.pendingWo !== '' && r.pendingWo !== undefined ? `<div class="text-[10.5px] text-amber-700 font-semibold"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Pending WO: <strong>${r.pendingWo}</strong></div>` : ''}
                         </div>
                       </td>
                       <td class="tiimi-td">

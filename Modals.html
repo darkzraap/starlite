@@ -55,7 +55,7 @@
                 </div>
             </div>
 
-            <!-- Row 2: Sales Performance (Target Kunjungan, Target Closing Head Count, Realisasi Work Order & Head Count, Pending Work Order) -->
+            <!-- Row 2: Sales Performance (Target Kunjungan, Target Closing HC, Realisasi WO & HC, Pending WO) -->
             <div class="grid grid-cols-5 divide-x divide-slate-200 text-center py-2.5 bg-white text-xs">
                 <div class="px-2">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target
@@ -63,38 +63,34 @@
                     <span id="detStatTargetVisit" class="text-sm sm:text-base font-extrabold text-slate-800">0</span>
                 </div>
                 <div class="px-2 bg-sky-50/40">
-                    <span class="text-[10px] text-sky-700 font-bold uppercase tracking-wider block">Realisasi Work
-                        Order</span>
+                    <span class="text-[10px] text-sky-700 font-bold uppercase tracking-wider block">Realisasi WO</span>
                     <span id="detStatAktualWo" class="text-sm sm:text-base font-extrabold text-sky-700">0</span>
                 </div>
                 <div class="px-2">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target Closing
-                        Head Count</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target Closing HC</span>
                     <span id="detStatTargetHc" class="text-sm sm:text-base font-extrabold text-slate-800">0</span>
                 </div>
                 <div class="px-2 bg-indigo-50/40">
-                    <span class="text-[10px] text-indigo-700 font-bold uppercase tracking-wider block">Realisasi Head
-                        Count</span>
+                    <span class="text-[10px] text-indigo-700 font-bold uppercase tracking-wider block">Realisasi HC</span>
                     <span id="detStatAktualHc" class="text-sm sm:text-base font-extrabold text-indigo-700">0</span>
                 </div>
                 <div class="px-2 bg-amber-50/40">
-                    <span class="text-[10px] text-amber-700 font-bold uppercase tracking-wider block">Pending Work
-                        Order</span>
+                    <span class="text-[10px] text-amber-700 font-bold uppercase tracking-wider block">Pending WO</span>
                     <span id="detStatPendingWo" class="text-sm sm:text-base font-extrabold text-amber-700">0</span>
                 </div>
             </div>
         </div>
 
         <!-- Tabel Detail Seluruh Riwayat Absensi & Form Per Tanggal -->
-        <div class="overflow-y-auto flex-1">
+        <div class="table-sticky-container overflow-y-auto flex-1 max-h-[50vh] relative">
             <table class="w-full text-left border-collapse">
                 <thead class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs">
                     <tr>
                         <th class="tiimi-th">Tanggal Presensi</th>
                         <th class="tiimi-th">Stasiun Penugasan (Clock-In & Out)</th>
                         <th class="tiimi-th">Rencana & Realisasi Kunjungan</th>
-                        <th class="tiimi-th">Target vs Realisasi (Work Order & Head Count)</th>
-                        <th class="tiimi-th">Daftar Customer ID (Work Order & Head Count)</th>
+                        <th class="tiimi-th">Target vs Realisasi (WO & HC)</th>
+                        <th class="tiimi-th">Daftar Customer ID (WO & HC)</th>
                         <th class="tiimi-th">Waktu Clock-In</th>
                         <th class="tiimi-th">Waktu Clock-Out</th>
                     </tr>
@@ -179,7 +175,7 @@
                     </div>
                 </div>
 
-                <!-- Target Kunjungan & Target Closing Head Count -->
+                <!-- Target Kunjungan & Target Closing HC -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 space-y-1">
                         <label class="block font-bold text-slate-800 text-xs">
@@ -192,7 +188,7 @@
                     </div>
                     <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 space-y-1">
                         <label class="block font-bold text-slate-800 text-xs">
-                            <i class="fa-solid fa-handshake-simple text-sky-600 mr-1"></i>Target Closing Head Count
+                            <i class="fa-solid fa-handshake-simple text-sky-600 mr-1"></i>Target Closing HC
                             <span class="text-rose-500">*</span>
                         </label>
                         <input type="number" id="inTargetClosingHc" min="0" placeholder="0"
@@ -240,11 +236,11 @@
                         class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none">
                 </div>
 
-                <!-- 3 Kolom Capaian: Realisasi Work Order, Realisasi Closing Head Count, Pending Work Order -->
+                <!-- 3 Kolom Capaian: Realisasi WO, Realisasi Closing HC, Pending WO -->
                 <div class="grid grid-cols-3 gap-2.5">
                     <div class="bg-sky-50/50 p-2.5 rounded-xl border border-sky-200/80 space-y-1 text-center">
                         <label class="block font-bold text-sky-900 text-xs">
-                            Realisasi Work Order <span class="text-rose-500">*</span>
+                            Realisasi WO <span class="text-rose-500">*</span>
                         </label>
                         <input type="number" id="outAktualWo" min="0" placeholder="0"
                             oninput="onAktualWoChange(this.value); updateSubmitButtonState();"
@@ -252,7 +248,7 @@
                     </div>
                     <div class="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-200/80 space-y-1 text-center">
                         <label class="block font-bold text-indigo-900 text-xs">
-                            Realisasi Head Count <span class="text-rose-500">*</span>
+                            Realisasi HC <span class="text-rose-500">*</span>
                         </label>
                         <input type="number" id="outAktualHc" min="0" placeholder="0"
                             oninput="updateSubmitButtonState()"
@@ -260,7 +256,7 @@
                     </div>
                     <div class="bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/80 space-y-1 text-center">
                         <label class="block font-bold text-amber-900 text-xs">
-                            Pending Work Order <span class="text-rose-500">*</span>
+                            Pending WO <span class="text-rose-500">*</span>
                         </label>
                         <input type="number" id="outPendingWo" min="0" placeholder="0"
                             oninput="updateSubmitButtonState()"
@@ -272,7 +268,7 @@
                 <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                            <i class="fa-solid fa-list-ol text-sky-600"></i> Nomor Customer ID (Work Order & Head Count)
+                            <i class="fa-solid fa-list-ol text-sky-600"></i> Nomor Customer ID (WO & HC)
                         </span>
                         <span id="outCidCountBadge"
                             class="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
@@ -280,13 +276,12 @@
                         </span>
                     </div>
                     <p class="text-[11px] text-slate-500">
-                        Kolom nomor Customer ID otomatis disediakan sebanyak angka pada <strong>Realisasi Work
-                            Order</strong>.
+                        Kolom nomor Customer ID otomatis disediakan sebanyak angka pada <strong>Realisasi WO</strong>.
                     </p>
                     <div id="cidInputsContainer" class="space-y-2 max-h-44 overflow-y-auto pt-1">
                         <div
                             class="text-xs text-slate-400 italic bg-white p-3 rounded-xl border border-slate-200 text-center">
-                            Masukkan angka pada Realisasi Work Order di atas untuk menginput daftar nomor Customer ID.
+                            Masukkan angka pada Realisasi WO di atas untuk menginput daftar nomor Customer ID.
                         </div>
                     </div>
                 </div>
@@ -355,5 +350,141 @@
                 <i class="fa-solid fa-paper-plane"></i> Ambil Foto & Kirim Absensi
             </button>
         </div>
+    </div>
+</div>
+
+<!-- ================= MODAL TAMBAH & EDIT AKUN PERSONEL (ADMIN) ================= -->
+<div id="modalUserForm"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-2xl border border-slate-200/90 shadow-2xl overflow-hidden my-auto flex flex-col">
+        <!-- Header -->
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-600">
+                    <i class="fa-solid fa-user-plus text-xs"></i>
+                </div>
+                <div>
+                    <h3 id="formUserTitle" class="text-xs sm:text-sm font-bold text-slate-800">Tambah Personel Sales / Pengguna Baru</h3>
+                    <p class="text-[10.5px] text-slate-400">Kelola kredensial login, hak akses & penugasan stasiun</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeUserModal()"
+                class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="userForm" onsubmit="handleSaveUser(event)" class="p-5 space-y-3.5 text-xs overflow-y-auto max-h-[80vh]">
+            <input type="hidden" id="usrId">
+            <div>
+                <label class="text-slate-700 font-bold block mb-1">Nama Lengkap Personel <span class="text-rose-500">*</span></label>
+                <input type="text" id="usrNama" required placeholder="Contoh: Bagus Fikri"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-slate-700 font-bold block mb-1">Username Login <span class="text-rose-500">*</span></label>
+                    <input type="text" id="usrUsername" required placeholder="bagus01"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="text-slate-700 font-bold block mb-1">Password <span class="text-rose-500">*</span></label>
+                    <input type="text" id="usrPassword" required placeholder="Min. 4 karakter"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-slate-700 font-bold block mb-1">Role Sistem <span class="text-rose-500">*</span></label>
+                    <select id="usrRole"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+                        <option value="Sales">Sales</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Controller">Controller</option>
+                        <option value="Site Manager">Site Manager</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-slate-700 font-bold block mb-1">Status Kontrak <span class="text-rose-500">*</span></label>
+                    <select id="usrStatus"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+                        <option value="Inhouse">Inhouse</option>
+                        <option value="Freelance">Freelance</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="text-slate-700 font-bold block mb-1">Provinsi Penugasan <span class="text-rose-500">*</span></label>
+                <input type="text" id="usrProvinsi" required placeholder="Contoh: Jawa Barat"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+            </div>
+            <div>
+                <label class="text-slate-700 font-bold block mb-1">Stasiun Pangkalan / Penugasan <span class="text-rose-500">*</span></label>
+                <input type="text" id="usrStasiun" list="stationOptionsList" oninput="onUserStationInput(this.value)" required placeholder="Pilih / ketik nama stasiun..."
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+                <datalist id="stationOptionsList"></datalist>
+            </div>
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeUserModal()"
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                    Batal
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20 flex items-center gap-1.5">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>Simpan Data Akun</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL TAMBAH & EDIT STASIUN (ADMIN) ================= -->
+<div id="modalStationForm"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-2xl border border-slate-200/90 shadow-2xl overflow-hidden my-auto flex flex-col">
+        <!-- Header -->
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-600">
+                    <i class="fa-solid fa-train text-xs"></i>
+                </div>
+                <div>
+                    <h3 id="formStationTitle" class="text-xs sm:text-sm font-bold text-slate-800">Tambah Stasiun Baru</h3>
+                    <p class="text-[10.5px] text-slate-400">Kelola master titik stasiun & kota penugasan</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeStationModal()"
+                class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="stationForm" onsubmit="handleSaveStation(event)" class="p-5 space-y-3.5 text-xs">
+            <input type="hidden" id="stnId">
+            <div>
+                <label class="text-slate-700 font-bold block mb-1">Kota / Wilayah Penugasan <span class="text-rose-500">*</span></label>
+                <input type="text" id="stnKota" required placeholder="Contoh: Bandung, Jakarta, dll."
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+            </div>
+            <div>
+                <label class="text-slate-700 font-bold block mb-1">Nama Stasiun Lengkap <span class="text-rose-500">*</span></label>
+                <input type="text" id="stnNama" required placeholder="Contoh: Stasiun Bandung, Stasiun Gambir"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition">
+            </div>
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeStationModal()"
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                    Batal
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold rounded-xl transition shadow-sm shadow-sky-500/20 flex items-center gap-1.5">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>Simpan Data Stasiun</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
