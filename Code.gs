@@ -1014,15 +1014,18 @@ function getAllSalesTrackingData(dateStr) {
   const trackData = trackSheet ? trackSheet.getDataRange().getValues() : [];
   const absenData = absenSheet.getDataRange().getValues();
 
-  // Absen map per user untuk tanggal terpilih
-  const absenMap = {};
+  // Kumpulkan seluruh data absen hari ini
+  const todayAbsenList = [];
+  const absenMapById = {};
+  const absenMapByUserKey = {};
+
   for (let j = 1; j < absenData.length; j++) {
     const aId = String(absenData[j][0]).trim();
     const aTgl = formatRowDate_(absenData[j][1]);
     const aUname = String(absenData[j][2]).trim().toLowerCase();
     const aNama = String(absenData[j][3]).trim().toLowerCase();
 
-    if (aTgl === todayStr) {
+    if (aTgl === todayStr && aId) {
       const aObj = {
         idAbsen: aId,
         tanggal: aTgl,
@@ -1049,9 +1052,10 @@ function getAllSalesTrackingData(dateStr) {
         aktualHc: formatNumberOrBlank_(absenData[j][24]),
         pendingWo: formatNumberOrBlank_(absenData[j][25])
       };
-      absenMap[aId] = aObj;
-      absenMap[aUname + '|' + aNama] = aObj;
-      if (!absenMap[aUname]) absenMap[aUname] = aObj;
+      todayAbsenList.push(aObj);
+      absenMapById[aId] = aObj;
+      absenMapByUserKey[aUname + '|' + aNama] = aObj;
+      if (!absenMapByUserKey[aUname]) absenMapByUserKey[aUname] = aObj;
     }
   }
 
@@ -1072,9 +1076,9 @@ function getAllSalesTrackingData(dateStr) {
         pts = [];
       }
 
-      const absenInfo = absenMap[rId] || absenMap[userKey] || absenMap[rUname] || {};
+      const absenInfo = absenMapById[rId] || absenMapByUserKey[userKey] || absenMapByUserKey[rUname] || {};
       trackedUserKeys[userKey] = true;
-      trackedUserKeys[rId] = true;
+      if (rId) trackedUserKeys[rId] = true;
 
       // Graceful fallback jika pts kosong di GPS_TRACKS namun absen memiliki koordinat
       if (pts.length === 0) {
@@ -1107,14 +1111,13 @@ function getAllSalesTrackingData(dateStr) {
     }
   }
 
-  // Graceful synthesis untuk data absen yang belum ada baris di GPS_TRACKS
-  Object.keys(absenMap).forEach(key => {
-    if (key.includes('|') || !key.startsWith('ABS_')) return;
-    const a = absenMap[key];
+  // Graceful synthesis untuk seluruh data absen hari ini yang belum tercatat di GPS_TRACKS
+  todayAbsenList.forEach(a => {
     const uKey = a.username.toLowerCase() + '|' + a.nama.toLowerCase();
-    if (!trackedUserKeys[uKey] && !trackedUserKeys[a.idAbsen]) {
+    if (!trackedUserKeys[uKey] && (!a.idAbsen || !trackedUserKeys[a.idAbsen])) {
       trackedUserKeys[uKey] = true;
-      trackedUserKeys[a.idAbsen] = true;
+      if (a.idAbsen) trackedUserKeys[a.idAbsen] = true;
+
       let synPts = [];
       if (a.koordinatIn && a.koordinatIn.includes(',')) {
         const parts = a.koordinatIn.split(',').map(s => parseFloat(s.trim()));

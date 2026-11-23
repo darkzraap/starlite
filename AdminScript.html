@@ -1053,7 +1053,7 @@
             }
         }
 
-        renderAllSalesRosterList(allSalesMapDataCache, selectedSalesUsername);
+        renderAllSalesRosterList(allSalesMapDataCache, selectedFilterVal);
 
         const bounds = L.latLngBounds();
         let validPointCount = 0;
@@ -1221,7 +1221,8 @@
         }
 
         container.innerHTML = tracks.map((t, idx) => {
-            const isSelected = activeUsername && t.username.toLowerCase() === activeUsername;
+            const composite = ((t.username || '') + '|' + (t.nama || '')).toLowerCase();
+            const isSelected = activeUsername && (t.username.toLowerCase() === activeUsername || composite === activeUsername);
             const salesColor = SALES_ROUTE_COLORS[idx % SALES_ROUTE_COLORS.length];
             const isCompleted = t.statusKoneksi === 'COMPLETED' || t.absen?.jamOut;
             const isDisconnected = t.statusKoneksi === 'DISCONNECTED';
