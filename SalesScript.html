@@ -59,6 +59,7 @@
 
             // Jika di hari ini belum ada record (atau sudah ganti hari baru), otomatis reset ke Belum Absen
             if (!rec) {
+                stopGpsTracking(false);
                 boxIn.textContent = 'Belum Clock-In';
                 badgeIn.classList.add('hidden');
                 boxOut.textContent = 'Terkunci';
@@ -76,6 +77,7 @@
                 btnIn.disabled = true;
 
                 if (rec.jamOut) {
+                    stopGpsTracking(true);
                     boxOut.textContent = rec.jamOut;
                     badgeOut.textContent = 'Completed';
                     badgeOut.className = 'text-[10.5px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200';
@@ -86,8 +88,13 @@
                     boxOut.textContent = 'Belum Out';
                     badgeOut.classList.add('hidden');
                     durEl.textContent = 'Sedang Bertugas';
-                    btnOut.disabled = false;
-                    noticeEl.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i> Tombol Clock-Out aktif setelah pukul <strong>${workSettings.minClockOut} WIB</strong>.`;
+                    btnOut.disabled = isTrackingDisconnected;
+                    if (isTrackingDisconnected) {
+                        noticeEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1"></i> <strong class="text-rose-600">Koneksi GPS Terputus.</strong> Silakan tekan tombol <strong>"Sambungkan Ulang GPS / Map"</strong> di atas terlebih dahulu.';
+                    } else {
+                        noticeEl.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i> Tombol Clock-Out aktif setelah pukul <strong>${workSettings.minClockOut} WIB</strong>.`;
+                    }
+                    startGpsTracking(rec.idAbsen || ('ABS_' + res.serverDate + '_' + currentUser.username));
                 }
             }
 
@@ -222,6 +229,16 @@
 
     async function openAttendanceModal(type) {
         if (type === 'OUT') {
+            if (isTrackingDisconnected) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Koneksi GPS Terputus!',
+                    text: 'Koneksi pelacakan GPS terputus. Anda wajib menekan tombol "Sambungkan Ulang GPS / Map" terlebih dahulu sebelum melakukan Clock-Out.',
+                    confirmButtonColor: '#0284c7'
+                });
+                return;
+            }
+
             const nowStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
             const parts = nowStr.split(':').map(Number);
             const nowSec = (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
@@ -434,6 +451,14 @@
             }
             if (res.success) {
                 Swal.fire({ icon: 'success', title: 'Berhasil', text: res.message, confirmButtonColor: '#0f766e' });
+                if (currentAttendanceType === 'IN' && res.idAbsen) {
+                    startGpsTracking(res.idAbsen, currentLocation);
+                } else if (currentAttendanceType === 'OUT') {
+                    if (isTrackingActive) {
+                        recordTrackingPoint('CLOCK_OUT', currentLocation.lat, currentLocation.lng, 'Titik Clock-Out Selesai Shift', currentLocation.accuracy || 10);
+                        stopGpsTracking(true);
+                    }
+                }
                 loadSalesDashboard();
             } else {
                 Swal.fire({ icon: 'error', title: 'Ditolak', text: res.message, confirmButtonColor: '#0f766e' });
@@ -442,5 +467,525 @@
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Gagal Kirim', text: err.toString(), confirmButtonColor: '#0f766e' });
         }).submitAttendance(payload);
+    }
+
+    // ================= GPS LIVE TRACKING SERVICE =================
+    const GPS_STORAGE_PREFIX = 'starlite_gps_trail_';
+    let trackingIdAbsen = null;
+    let trackingWatchId = null;
+    let trackingHeartbeatTimer = null;
+    let trackingWakeLock = null;
+    let isTrackingActive = false;
+    let isTrackingDisconnected = false;
+    let lastKnownPosition = null;
+    let lastRecordedPosition = null;
+    let lastPositionTimestamp = 0;
+    let localWaypoints = [];
+    let pendingSyncQueue = [];
+    let isSyncingGps = false;
+
+    function formatTimeNow_() {
+        return new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+    }
+
+    function calcDistanceMeters_(lat1, lon1, lat2, lon2) {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+        const R = 6371e3; // metres
+        const p1 = lat1 * Math.PI / 180;
+        const p2 = lat2 * Math.PI / 180;
+        const dp = (lat2 - lat1) * Math.PI / 180;
+        const dl = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(dp/2) * Math.sin(dp/2) +
+                  Math.cos(p1) * Math.cos(p2) *
+                  Math.sin(dl/2) * Math.sin(dl/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function calcTrailTotalKm_() {
+        if (!localWaypoints || localWaypoints.length < 2) return 0;
+        let totalMeters = 0;
+        let lastP = null;
+        for (let p of localWaypoints) {
+            if (p && typeof p.lat === 'number' && typeof p.lng === 'number') {
+                if (lastP) {
+                    const d = calcDistanceMeters_(lastP.lat, lastP.lng, p.lat, p.lng);
+                    if (d < 50000) { // filter anomalies > 50km
+                        totalMeters += d;
+                    }
+                }
+                lastP = p;
+            }
+        }
+        return Math.round((totalMeters / 1000) * 100) / 100;
+    }
+
+    // ================= HP NOTIFICATION BAR & BACKGROUND KEEP-ALIVE =================
+    function requestMobileNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            try {
+                Notification.requestPermission().then(perm => {
+                    if (perm === 'granted') {
+                        updateHpNotification('CONNECTED');
+                    }
+                });
+            } catch (e) {}
+        }
+    }
+
+    function updateHpNotification(statusType) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        try {
+            if (statusType === 'CONNECTED') {
+                new Notification('Starlite: GPS Aktif & Tersambung', {
+                    body: 'Pelacakan rute presensi berjalan aktif di latar belakang.',
+                    icon: 'https://lh3.googleusercontent.com/d/1uhCJGvX8gNfJ7yZpVr2bfCbElsmx_n33',
+                    tag: 'starlite_gps_status',
+                    renotify: false,
+                    silent: true
+                });
+            } else if (statusType === 'DISCONNECTED') {
+                new Notification('PERINGATAN: Sinyal GPS Terputus!', {
+                    body: 'Buka Starlite dan tekan "Harap Sambungkan Kembali" agar kehadiran tercatat.',
+                    icon: 'https://lh3.googleusercontent.com/d/1uhCJGvX8gNfJ7yZpVr2bfCbElsmx_n33',
+                    tag: 'starlite_gps_status',
+                    renotify: true,
+                    requireInteraction: true
+                });
+            } else if (statusType === 'RECONNECTED') {
+                new Notification('Starlite: GPS Tersambung Kembali', {
+                    body: 'Pelacakan rute lokasi kembali aktif normal.',
+                    icon: 'https://lh3.googleusercontent.com/d/1uhCJGvX8gNfJ7yZpVr2bfCbElsmx_n33',
+                    tag: 'starlite_gps_status',
+                    renotify: false,
+                    silent: true
+                });
+            }
+        } catch (e) {}
+    }
+
+    function startSilentAudioKeepAlive() {
+        const audio = document.getElementById('bgSilentAudio');
+        if (audio) {
+            audio.volume = 0.01;
+            audio.play().catch(e => {
+                console.log('Audio keep-alive waiting for interaction:', e);
+            });
+        }
+    }
+
+    function stopSilentAudioKeepAlive() {
+        const audio = document.getElementById('bgSilentAudio');
+        if (audio) {
+            try { audio.pause(); audio.currentTime = 0; } catch (e) {}
+        }
+    }
+
+    // Auto wake-up saat browser kembali difokuskan / dibuka dari minimize
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && isTrackingActive) {
+            startSilentAudioKeepAlive();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => onTrackingPositionSuccess(pos),
+                    err => {},
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+                );
+            }
+        }
+    });
+
+    function updateTrackingUi() {
+        const card = document.getElementById('salesTrackingCard');
+        if (!card) return;
+
+        if (!isTrackingActive) {
+            card.classList.add('hidden');
+            return;
+        }
+
+        card.classList.remove('hidden');
+
+        const dot = document.getElementById('trackingStatusDot');
+        const title = document.getElementById('trackingStatusTitle');
+        const sub = document.getElementById('trackingStatusSub');
+        const distBadge = document.getElementById('trackingDistanceBadge');
+        const countBadge = document.getElementById('trackingPointsCount');
+        const noticeDis = document.getElementById('trackingDisconnectedNotice');
+        const btnReconnect = document.getElementById('btnReconnectGps');
+        const btnLabel = document.getElementById('btnReconnectGpsLabel');
+        const btnOut = document.getElementById('btnClockOut');
+        const noticeEl = document.getElementById('salesLockNotice');
+
+        const totalKm = calcTrailTotalKm_();
+        if (distBadge) distBadge.textContent = totalKm.toFixed(2) + ' km';
+        if (countBadge) countBadge.textContent = `${localWaypoints.length} titik`;
+
+        const lastTime = localWaypoints.length > 0 ? localWaypoints[localWaypoints.length - 1].time : formatTimeNow_();
+
+        if (isTrackingDisconnected) {
+            card.className = 'rounded-2xl p-4 border transition-all duration-200 bg-rose-50 border-rose-300 shadow-md space-y-3';
+            if (dot) {
+                dot.className = 'w-3 h-3 rounded-full bg-rose-500 animate-ping shrink-0 ring-4 ring-rose-400/30';
+            }
+            if (title) {
+                title.textContent = 'GPS Terputus / Tidak Terdeteksi!';
+                title.className = 'text-xs sm:text-sm font-extrabold text-rose-900 block truncate';
+            }
+            if (sub) {
+                sub.textContent = 'Pelacakan lokasi terhenti • Tombol Clock-Out dikunci';
+                sub.className = 'text-[10.5px] text-rose-700 truncate';
+            }
+            if (noticeDis) noticeDis.classList.remove('hidden');
+            if (btnReconnect) {
+                btnReconnect.disabled = false;
+                btnReconnect.className = 'w-full py-3.5 px-3 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 touch-target animate-pulse cursor-pointer';
+            }
+            if (btnLabel) {
+                btnLabel.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-1"></i> Harap Sambungkan Kembali';
+            }
+            if (btnOut) {
+                btnOut.disabled = true;
+            }
+            if (noticeEl) {
+                noticeEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1"></i> <strong class="text-rose-600">Koneksi GPS Terputus.</strong> Anda wajib menekan tombol <strong>"Harap Sambungkan Kembali"</strong> di atas terlebih dahulu sebelum Clock-Out.';
+            }
+            updateHpNotification('DISCONNECTED');
+        } else {
+            card.className = 'rounded-2xl p-4 border transition-all duration-200 bg-emerald-50/80 border-emerald-300 shadow-sm space-y-3';
+            if (dot) {
+                dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse shrink-0 ring-4 ring-emerald-400/20';
+            }
+            if (title) {
+                title.textContent = 'GPS Aktif & Tersambung';
+                title.className = 'text-xs sm:text-sm font-extrabold text-emerald-900 block truncate';
+            }
+            if (sub) {
+                sub.textContent = `Pelacakan rute berjalan normal • Update: ${lastTime} WIB`;
+                sub.className = 'text-[10.5px] text-emerald-700 truncate';
+            }
+            if (noticeDis) noticeDis.classList.add('hidden');
+            if (btnReconnect) {
+                btnReconnect.disabled = true;
+                btnReconnect.className = 'w-full py-2.5 px-3 bg-emerald-100/90 border border-emerald-300 text-emerald-800 font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-2 cursor-not-allowed select-none';
+            }
+            if (btnLabel) {
+                btnLabel.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> GPS Tersambung Otomatis (Latar Belakang)';
+            }
+            if (btnOut && salesTodayRecord && !salesTodayRecord.jamOut) {
+                btnOut.disabled = false;
+            }
+            if (noticeEl && salesTodayRecord && !salesTodayRecord.jamOut) {
+                noticeEl.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i> Tombol Clock-Out aktif setelah pukul <strong>${workSettings.minClockOut} WIB</strong>.`;
+            }
+        }
+    }
+
+    // Handler Utama Tombol Aksi GPS: Hanya aktif saat sinyal GPS terputus
+    function handleGpsActionButtonClick() {
+        if (!isTrackingDisconnected) {
+            // Jika GPS masih terhubung, jangan perbarui titik manual untuk menghindari banyaknya titik berlebih
+            return;
+        }
+        reconnectGpsTracking();
+    }
+
+    // Tombol diklik saat tersambung: Ambil lokasi seketika & tambahkan titik baru
+    function forceRecordGpsPoint() {
+        const btnLabel = document.getElementById('btnReconnectGpsLabel');
+        const origText = btnLabel ? btnLabel.textContent : '';
+        if (btnLabel) btnLabel.textContent = 'Mengunci Koordinat GPS...';
+
+        showLoading('Mengunci titik koordinat GPS terbaru...');
+
+        if (!navigator.geolocation) {
+            hideLoading();
+            if (btnLabel) btnLabel.textContent = origText;
+            Swal.fire({ icon: 'error', title: 'GPS Tidak Tersedia', text: 'Browser tidak mendukung GPS Geolocation.', confirmButtonColor: '#0284c7' });
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                hideLoading();
+                if (btnLabel) btnLabel.textContent = origText;
+
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const acc = pos.coords.accuracy;
+
+                recordTrackingPoint('TRACK', lat, lng, 'Pembaruan titik manual oleh sales', acc);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Titik GPS Diperbarui',
+                    html: `Koordinat berhasil dikunci:<br><span class="font-mono-code text-xs text-slate-600 font-bold">${lat.toFixed(6)}, ${lng.toFixed(6)}</span><br><span class="text-xs text-slate-500 font-semibold">Total titik tercatat: <strong>${localWaypoints.length} titik</strong></span>`,
+                    confirmButtonColor: '#0284c7',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            },
+            err => {
+                hideLoading();
+                if (btnLabel) btnLabel.textContent = origText;
+                onTrackingPositionError(err);
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+    }
+
+    function recordTrackingPoint(type, lat, lng, note = '', acc = 10) {
+        if (!lat || !lng || !trackingIdAbsen) return;
+        const pt = {
+            type: type,
+            lat: Number(lat),
+            lng: Number(lng),
+            time: formatTimeNow_(),
+            acc: Math.round(acc || 10),
+            note: note || ''
+        };
+        localWaypoints.push(pt);
+        pendingSyncQueue.push(pt);
+        lastKnownPosition = { lat, lng };
+        lastRecordedPosition = { lat, lng };
+        lastPositionTimestamp = Date.now();
+
+        try {
+            localStorage.setItem(GPS_STORAGE_PREFIX + trackingIdAbsen, JSON.stringify(localWaypoints));
+        } catch (e) {}
+
+        updateTrackingUi();
+        syncPendingTrackingPoints();
+    }
+
+    function syncPendingTrackingPoints(forcedStatus = null) {
+        if (!trackingIdAbsen || !currentUser) return;
+        if (isSyncingGps) return;
+        if (pendingSyncQueue.length === 0 && !forcedStatus) return;
+
+        const pointsToSync = pendingSyncQueue.slice();
+        pendingSyncQueue = [];
+        isSyncingGps = true;
+
+        const statusKoneksi = forcedStatus || (isTrackingDisconnected ? 'DISCONNECTED' : 'CONNECTED');
+
+        const payload = {
+            idAbsen: trackingIdAbsen,
+            tanggal: document.getElementById('salesTodayDateLabel').textContent || new Date().toISOString().slice(0, 10),
+            username: currentUser.username,
+            nama: currentUser.nama,
+            statusKoneksi: statusKoneksi,
+            points: pointsToSync
+        };
+
+        google.script.run.withSuccessHandler(res => {
+            isSyncingGps = false;
+        }).withFailureHandler(err => {
+            isSyncingGps = false;
+            pendingSyncQueue = pointsToSync.concat(pendingSyncQueue);
+        }).syncGpsTracking(payload);
+    }
+
+    function onTrackingPositionSuccess(pos) {
+        if (!isTrackingActive) return;
+        lastPositionTimestamp = Date.now();
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
+
+        lastKnownPosition = { lat, lng };
+
+        if (isTrackingDisconnected) {
+            isTrackingDisconnected = false;
+            recordTrackingPoint('RECONNECTED', lat, lng, 'Koneksi GPS otomatis terhubung kembali', acc);
+            updateHpNotification('RECONNECTED');
+            return;
+        }
+
+        if (!lastRecordedPosition) {
+            recordTrackingPoint('TRACK', lat, lng, 'Pergerakan sales', acc);
+        } else {
+            const dist = calcDistanceMeters_(lastRecordedPosition.lat, lastRecordedPosition.lng, lat, lng);
+            if (dist >= 15) {
+                recordTrackingPoint('TRACK', lat, lng, 'Pergerakan sales', acc);
+            }
+        }
+    }
+
+    function onTrackingPositionError(err) {
+        if (!isTrackingActive) return;
+        if (isTrackingDisconnected) return;
+
+        isTrackingDisconnected = true;
+        const errMsg = (err && err.message) ? err.message : 'Sinyal GPS hilang atau izin dinonaktifkan';
+        const lat = lastKnownPosition ? lastKnownPosition.lat : 0;
+        const lng = lastKnownPosition ? lastKnownPosition.lng : 0;
+
+        recordTrackingPoint('DISCONNECTED', lat, lng, 'GPS Terputus: ' + errMsg);
+        updateTrackingUi();
+        updateHpNotification('DISCONNECTED');
+    }
+
+    async function reconnectGpsTracking() {
+        const btnLabel = document.getElementById('btnReconnectGpsLabel');
+        const origText = btnLabel ? btnLabel.textContent : '';
+        if (btnLabel) btnLabel.textContent = 'Menghubungkan GPS...';
+
+        showLoading('Mengunci kembali titik koordinat GPS...');
+
+        if (!navigator.geolocation) {
+            hideLoading();
+            if (btnLabel) btnLabel.textContent = origText;
+            Swal.fire({
+                icon: 'error',
+                title: 'GPS Tidak Didukung',
+                text: 'Browser Anda tidak mendukung Geolocation GPS.',
+                confirmButtonColor: '#0284c7'
+            });
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                hideLoading();
+                if (btnLabel) btnLabel.textContent = 'Perbarui Titik GPS Sekarang';
+
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const acc = pos.coords.accuracy;
+
+                isTrackingDisconnected = false;
+                recordTrackingPoint('RECONNECTED', lat, lng, 'Disambungkan ulang oleh pengguna via tombol', acc);
+
+                if (trackingWatchId !== null) {
+                    try { navigator.geolocation.clearWatch(trackingWatchId); } catch(e){}
+                }
+                trackingWatchId = navigator.geolocation.watchPosition(
+                    onTrackingPositionSuccess,
+                    onTrackingPositionError,
+                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+                );
+
+                updateTrackingUi();
+                updateHpNotification('RECONNECTED');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'GPS Berhasil Terhubung',
+                    text: 'Koordinat lokasi telah dipulihkan. Tombol Clock-Out sekarang siap digunakan.',
+                    confirmButtonColor: '#0284c7',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+            err => {
+                hideLoading();
+                if (btnLabel) btnLabel.textContent = origText;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Mengunci Lokasi',
+                    text: 'Gagal mendeteksi lokasi GPS (' + (err.message || 'Timeout') + '). Pastikan GPS HP aktif dan izin lokasi diizinkan.',
+                    confirmButtonColor: '#0284c7'
+                });
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    }
+
+    function startGpsTracking(idAbsen, initialCoords = null) {
+        if (!idAbsen) return;
+        trackingIdAbsen = idAbsen;
+        isTrackingActive = true;
+        isTrackingDisconnected = false;
+
+        // Mulai audio keep-alive & minta izin notifikasi bar HP
+        startSilentAudioKeepAlive();
+        requestMobileNotificationPermission();
+
+        try {
+            const saved = localStorage.getItem(GPS_STORAGE_PREFIX + idAbsen);
+            if (saved) {
+                localWaypoints = JSON.parse(saved);
+            } else {
+                localWaypoints = [];
+            }
+        } catch (e) {
+            localWaypoints = [];
+        }
+
+        if (localWaypoints.length === 0 && initialCoords && initialCoords.lat && initialCoords.lng) {
+            recordTrackingPoint('CLOCK_IN', initialCoords.lat, initialCoords.lng, 'Titik Awal Clock-In', initialCoords.accuracy || 10);
+        }
+
+        if ('wakeLock' in navigator) {
+            try {
+                navigator.wakeLock.request('screen').then(wl => {
+                    trackingWakeLock = wl;
+                }).catch(e => {});
+            } catch (e) {}
+        }
+
+        if (navigator.geolocation && trackingWatchId === null) {
+            trackingWatchId = navigator.geolocation.watchPosition(
+                onTrackingPositionSuccess,
+                onTrackingPositionError,
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+            );
+        }
+
+        if (trackingHeartbeatTimer === null) {
+            trackingHeartbeatTimer = setInterval(() => {
+                if (!isTrackingActive) return;
+
+                if (lastPositionTimestamp > 0 && (Date.now() - lastPositionTimestamp) > 240000) {
+                    if (!isTrackingDisconnected) {
+                        onTrackingPositionError({ message: 'GPS Heartbeat Timeout (>4 menit tanpa sinyal)' });
+                    }
+                }
+
+                if (navigator.geolocation && !isTrackingDisconnected) {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => onTrackingPositionSuccess(pos),
+                        err => {},
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
+                    );
+                }
+
+                syncPendingTrackingPoints();
+            }, 45000);
+        }
+
+        updateTrackingUi();
+        updateHpNotification('CONNECTED');
+    }
+
+    function stopGpsTracking(isCompleted = false) {
+        stopSilentAudioKeepAlive();
+
+        if (trackingWatchId !== null) {
+            try { navigator.geolocation.clearWatch(trackingWatchId); } catch(e){}
+            trackingWatchId = null;
+        }
+        if (trackingHeartbeatTimer !== null) {
+            clearInterval(trackingHeartbeatTimer);
+            trackingHeartbeatTimer = null;
+        }
+        if (trackingWakeLock) {
+            try { trackingWakeLock.release(); } catch(e){}
+            trackingWakeLock = null;
+        }
+
+        if (isCompleted && trackingIdAbsen) {
+            syncPendingTrackingPoints('COMPLETED');
+            try {
+                localStorage.removeItem(GPS_STORAGE_PREFIX + trackingIdAbsen);
+            } catch (e) {}
+        }
+
+        isTrackingActive = false;
+        isTrackingDisconnected = false;
+        updateTrackingUi();
     }
 </script>

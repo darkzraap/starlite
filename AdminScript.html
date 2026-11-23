@@ -1,5 +1,19 @@
 <script>
     // ================= ADMIN FLOW & DASHBOARD LOGIC =================
+    let selectedDate = new Date().toISOString().split('T')[0];
+
+    function syncDateInputs() {
+        if (!selectedDate) {
+            const adminInput = document.getElementById('adminDateFilter');
+            selectedDate = (adminInput && adminInput.value) ? adminInput.value : new Date().toISOString().split('T')[0];
+        }
+        if (document.getElementById('adminDateFilter')) document.getElementById('adminDateFilter').value = selectedDate;
+        if (document.getElementById('sumStartDate')) document.getElementById('sumStartDate').value = selectedDate;
+        if (document.getElementById('sumEndDate')) document.getElementById('sumEndDate').value = selectedDate;
+        if (document.getElementById('allMapDatePicker')) document.getElementById('allMapDatePicker').value = selectedDate;
+        document.querySelectorAll('.lblSelectedDate').forEach(el => { el.textContent = selectedDate; });
+    }
+
     function stepAdminDate(days) {
         const input = document.getElementById('adminDateFilter');
         const curr = new Date(input.value || new Date());
@@ -17,11 +31,19 @@
     }
 
     function onHeaderDateChange() {
-        const selectedDate = document.getElementById('adminDateFilter').value;
-        // Sinkronkan filter tanggal di tab Rekap Akumulasi agar langsung melihat akumulasi tanggal tersebut
-        document.getElementById('sumStartDate').value = selectedDate;
-        document.getElementById('sumEndDate').value = selectedDate;
+        const input = document.getElementById('adminDateFilter');
+        if (input && input.value) selectedDate = input.value;
+        syncDateInputs();
         loadAdminData();
+
+        const allMapTab = document.getElementById('tabAllMaps');
+        if (allMapTab && !allMapTab.classList.contains('hidden')) {
+            loadAllSalesMapData();
+        }
+    }
+
+    function changeAdminDate(days) {
+        stepAdminDate(days);
     }
 
     function switchAdminTab(tabId) {
@@ -36,12 +58,13 @@
             return;
         }
 
-        const allTabs = ['tabMonitoring', 'tabBelumAbsen', 'tabSummary', 'tabAllLogs', 'tabUsers', 'tabStations', 'tabSettings'];
+        const allTabs = ['tabMonitoring', 'tabBelumAbsen', 'tabSummary', 'tabAllLogs', 'tabAllMaps', 'tabUsers', 'tabStations', 'tabSettings'];
         const titles = {
             tabMonitoring: 'Attendance Harian',
             tabBelumAbsen: 'Daftar Belum Clock-In',
             tabSummary: 'Database Akumulasi Kehadiran Per Tanggal',
             tabAllLogs: 'Semua Database Absensi',
+            tabAllMaps: 'Peta Monitoring & Pelacakan Semua Sales',
             tabUsers: 'Kelola Akun Sales & Admin',
             tabStations: 'Database Stasiun & Kota',
             tabSettings: 'Pengaturan Jam Kerja'
@@ -87,6 +110,17 @@
         if (activeMob) {
             activeMob.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#0284c7] border border-sky-600 text-white shrink-0 shadow-sm shadow-sky-600/30';
         }
+
+        if (tabId === 'tabAllMaps') {
+            const picker = document.getElementById('allMapDatePicker');
+            if (picker) picker.value = selectedDate;
+            setTimeout(() => {
+                if (allSalesMapInstance) {
+                    allSalesMapInstance.invalidateSize();
+                }
+            }, 100);
+            loadAllSalesMapData();
+        }
     }
 
     function toggleMobileSidebar(forceState) {
@@ -107,8 +141,9 @@
     }
 
     function loadAdminData() {
-        const selectedDate = document.getElementById('adminDateFilter').value;
-        document.querySelectorAll('.lblSelectedDate').forEach(el => { el.textContent = selectedDate; });
+        const adminInput = document.getElementById('adminDateFilter');
+        if (adminInput && adminInput.value) selectedDate = adminInput.value;
+        syncDateInputs();
         showLoading('Menyinkronkan database...');
 
         google.script.run.withSuccessHandler(res => {
@@ -124,13 +159,41 @@
             tableState.allLogs.data = res.allLogs || [];
             tableState.users.data = res.users || [];
 
+            // Pastikan data master sales unik (hindari duplikasi baris akun dengan username yang sama)
+            const uniqueSalesMap = new Map();
+            (res.salesOnly || []).forEach(s => {
+                const uKey = String(s.username || '').toLowerCase().trim();
+                if (uKey && !uniqueSalesMap.has(uKey)) {
+                    uniqueSalesMap.set(uKey, s);
+                }
+            });
+            masterSalesOnly = Array.from(uniqueSalesMap.values());
             const totalSales = masterSalesOnly.length;
-            const onTimeCount = tableState.todayLogs.data.filter(l => l.statusIn === 'On Time').length;
-            const lateCount = tableState.todayLogs.data.filter(l => l.statusIn === 'Late').length;
-            const clockedOutCount = tableState.todayLogs.data.filter(l => l.jamOut !== '').length;
-            const noClockOutCount = tableState.todayLogs.data.filter(l => l.jamOut === '').length;
-            const belumCount = tableState.belumAbsen.data.length;
-            const rate = totalSales > 0 ? Math.round((tableState.todayLogs.data.length / totalSales) * 100) : 0;
+
+            // Evaluasi kehadiran per individu sales yang unik pada hari ini
+            const uniqueSalesLogsMap = new Map();
+            (tableState.todayLogs.data || []).forEach(l => {
+                const uKey = String(l.username || '').toLowerCase().trim();
+                if (uKey && !uniqueSalesLogsMap.has(uKey)) {
+                    uniqueSalesLogsMap.set(uKey, l);
+                }
+            });
+            const uniqueSalesLogs = Array.from(uniqueSalesLogsMap.values());
+
+            const onTimeCount = uniqueSalesLogs.filter(l => l.statusIn === 'On Time').length;
+            const lateCount = uniqueSalesLogs.filter(l => l.statusIn === 'Late').length;
+            const clockedOutCount = uniqueSalesLogs.filter(l => l.jamOut && String(l.jamOut).trim() !== '').length;
+            const noClockOutCount = uniqueSalesLogs.filter(l => !l.jamOut || String(l.jamOut).trim() === '').length;
+            const belumCount = Math.max(0, totalSales - uniqueSalesLogs.length);
+            const rate = totalSales > 0 ? Math.round((uniqueSalesLogs.length / totalSales) * 100) : 0;
+
+            // Hitung akumulasi jarak tempuh hari ini & rata-rata per sales aktif
+            let totalKmToday = 0;
+            (tableState.todayLogs.data || []).forEach(l => {
+                totalKmToday += Number(l.totalJarakKm || 0);
+            });
+            const activeSalesToday = uniqueSalesLogs.length;
+            const avgKmToday = activeSalesToday > 0 ? (totalKmToday / activeSalesToday).toFixed(2) : '0.00';
 
             document.getElementById('kpiTotalSales').textContent = totalSales;
             document.getElementById('kpiOnTime').textContent = onTimeCount;
@@ -139,6 +202,16 @@
             document.getElementById('kpiBelumAbsen').textContent = belumCount;
             document.getElementById('kpiBelumOut').textContent = noClockOutCount;
             document.getElementById('kpiAttendanceRate').textContent = rate + '%';
+
+            const kpiAvgKm = document.getElementById('kpiAvgKm');
+            if (kpiAvgKm) kpiAvgKm.innerHTML = `${avgKmToday} <span class="text-xs font-bold text-slate-400">km</span>`;
+            const kpiTotalKm = document.getElementById('kpiTotalKm');
+            if (kpiTotalKm) kpiTotalKm.innerHTML = `${totalKmToday.toFixed(2)} <span class="text-xs font-bold text-slate-400">km</span>`;
+
+            const eqEl = document.getElementById('subLabelAttendanceEquation');
+            if (eqEl) {
+                eqEl.textContent = `${belumCount} Belum Masuk + ${noClockOutCount} Belum Pulang + ${clockedOutCount} Lengkap = ${totalSales} Sales`;
+            }
 
             const bNavBelum = document.getElementById('badgeNavBelum');
             if (bNavBelum) bNavBelum.textContent = belumCount;
@@ -187,6 +260,8 @@
         let totalTargetHc = 0;
         let totalAktualHc = 0;
         let totalPendingWo = 0;
+        let userTotalKm = 0;
+        let userTotalPts = 0;
 
         userLogs.forEach(l => {
             if (l.targetVisit !== '' && !isNaN(Number(l.targetVisit))) totalTargetVisit += Number(l.targetVisit);
@@ -194,6 +269,8 @@
             if (l.targetClosingHc !== '' && !isNaN(Number(l.targetClosingHc))) totalTargetHc += Number(l.targetClosingHc);
             if (l.aktualHc !== '' && !isNaN(Number(l.aktualHc))) totalAktualHc += Number(l.aktualHc);
             if (l.pendingWo !== '' && !isNaN(Number(l.pendingWo))) totalPendingWo += Number(l.pendingWo);
+            if (l.totalJarakKm !== '' && !isNaN(Number(l.totalJarakKm))) userTotalKm += Number(l.totalJarakKm);
+            if (l.totalTitik !== '' && !isNaN(Number(l.totalTitik))) userTotalPts += Number(l.totalTitik);
         });
 
         document.getElementById('detStatHadir').textContent = totalHadir;
@@ -209,6 +286,14 @@
         document.getElementById('detStatTargetHc').textContent = totalTargetHc;
         document.getElementById('detStatAktualHc').innerHTML = `${totalAktualHc} <span class="text-[10px] font-bold text-indigo-600 block">(${hcPct}%)</span>`;
         document.getElementById('detStatPendingWo').textContent = totalPendingWo;
+
+        const userAvgKm = totalHadir > 0 ? (userTotalKm / totalHadir).toFixed(2) : '0.00';
+        const detKm = document.getElementById('detStatTotalKm');
+        if (detKm) detKm.textContent = `${userTotalKm.toFixed(2)} km`;
+        const detAvg = document.getElementById('detStatAvgKm');
+        if (detAvg) detAvg.textContent = `${userAvgKm} km/hari`;
+        const detPts = document.getElementById('detStatTotalPts');
+        if (detPts) detPts.textContent = `${userTotalPts} titik`;
 
         tableState.userDetail.data = userLogs;
         tableState.userDetail.filters = {};
@@ -262,7 +347,9 @@
                 totalAktualWo: 0,
                 totalTargetHc: 0,
                 totalAktualHc: 0,
-                totalPendingWo: 0
+                totalPendingWo: 0,
+                totalKm: 0,
+                avgKmPerHadir: '0.00'
             };
         });
 
@@ -293,6 +380,7 @@
             if (log.targetClosingHc !== '' && !isNaN(Number(log.targetClosingHc))) summaryMap[uKey].totalTargetHc += Number(log.targetClosingHc);
             if (log.aktualHc !== '' && !isNaN(Number(log.aktualHc))) summaryMap[uKey].totalAktualHc += Number(log.aktualHc);
             if (log.pendingWo !== '' && !isNaN(Number(log.pendingWo))) summaryMap[uKey].totalPendingWo += Number(log.pendingWo);
+            if (log.totalJarakKm !== '' && !isNaN(Number(log.totalJarakKm))) summaryMap[uKey].totalKm += Number(log.totalJarakKm);
 
             if (!attendedDatesPerUser[uKey]) attendedDatesPerUser[uKey] = new Set();
             attendedDatesPerUser[uKey].add(log.tanggal);
@@ -301,6 +389,8 @@
         Object.keys(summaryMap).forEach(uKey => {
             const hadirUnikHari = attendedDatesPerUser[uKey] ? attendedDatesPerUser[uKey].size : 0;
             summaryMap[uKey].totalBelumIn = Math.max(0, totalDaysInRange - hadirUnikHari);
+            const hadir = summaryMap[uKey].totalHadir;
+            summaryMap[uKey].avgKmPerHadir = hadir > 0 ? (summaryMap[uKey].totalKm / hadir).toFixed(2) : '0.00';
         });
 
         tableState.summary.data = Object.values(summaryMap);
@@ -569,5 +659,564 @@
                 }).deleteStationAdmin(id, currentUser ? currentUser.role : '');
             }
         });
+    }
+
+    // ================= LEAFLET MAP CONTROLLER (LIVE ROUTE TRACKING) =================
+    let currentRouteMapInstance = null;
+    let currentRoutePolyline = null;
+    let currentRouteMarkers = [];
+    let currentRouteBounds = null;
+    let currentTrackingContext = null;
+
+    function openSalesRouteMapModal(idAbsen, username, tanggal, nama) {
+        currentTrackingContext = { idAbsen, username, tanggal, nama };
+
+        const modal = document.getElementById('modalSalesRouteMap');
+        if (!modal) return;
+
+        document.getElementById('routeMapTitle').textContent = `Rute Pergerakan: ${nama}`;
+        document.getElementById('routeMapSubtitle').textContent = `${username} • Tanggal: ${tanggal}`;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        showLoading('Mengambil rute pergerakan & data GPS...');
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (!res || !res.success) {
+                Swal.fire({ icon: 'info', title: 'Data Rute Kosong', text: 'Belum ada rekaman koordinat pergerakan untuk personel ini pada tanggal tersebut.', confirmButtonColor: '#0284c7' });
+                return;
+            }
+            renderRouteMapOnLeaflet(res);
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Gagal Memuat Peta', text: err.toString(), confirmButtonColor: '#0284c7' });
+        }).getGpsTrackingData(idAbsen, username, tanggal);
+    }
+
+    function renderRouteMapOnLeaflet(res) {
+        const tracking = res.tracking || {};
+        const absen = res.absenDetail || {};
+        const waypoints = tracking.waypoints || [];
+
+        // Update Stats Bar
+        const distEl = document.getElementById('routeStatDistance');
+        const ptsEl = document.getElementById('routeStatPoints');
+        const timeEl = document.getElementById('routeStatTime');
+        const disEl = document.getElementById('routeStatDisconnects');
+        const statusBadge = document.getElementById('routeMapStatusBadge');
+
+        const totalKm = (tracking.totalJarakKm !== undefined) ? Number(tracking.totalJarakKm).toFixed(2) : '0.00';
+        if (distEl) distEl.textContent = `${totalKm} km`;
+        if (ptsEl) ptsEl.textContent = `${waypoints.length} Titik`;
+        if (timeEl) timeEl.textContent = `In: ${absen.jamIn || '--:--'} | Out: ${absen.jamOut || '--:--'}`;
+
+        const disconnectCount = waypoints.filter(w => w.type === 'DISCONNECTED').length;
+        const reconnectCount = waypoints.filter(w => w.type === 'RECONNECTED').length;
+
+        if (disEl) {
+            if (disconnectCount > 0) {
+                disEl.textContent = `${disconnectCount} Putus / ${reconnectCount} Sambung`;
+                disEl.className = 'text-xs sm:text-sm font-bold text-amber-600';
+            } else {
+                disEl.textContent = 'Stabil / Tanpa Putus';
+                disEl.className = 'text-xs sm:text-sm font-bold text-emerald-600';
+            }
+        }
+
+        if (statusBadge) {
+            if (tracking.statusKoneksi === 'COMPLETED' || absen.jamOut) {
+                statusBadge.textContent = 'Selesai Shift';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-400/30 shrink-0';
+            } else if (tracking.statusKoneksi === 'DISCONNECTED') {
+                statusBadge.textContent = 'GPS Terputus';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-400/30 shrink-0 animate-pulse';
+            } else {
+                statusBadge.textContent = 'GPS Aktif';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0';
+            }
+        }
+
+        // Initialize Leaflet Map Instance jika belum dibuat
+        if (!currentRouteMapInstance) {
+            currentRouteMapInstance = L.map('leafletRouteMap', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([-6.914744, 107.609810], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(currentRouteMapInstance);
+        }
+
+        // Clear existing markers & polyline
+        currentRouteMarkers.forEach(m => currentRouteMapInstance.removeLayer(m));
+        currentRouteMarkers = [];
+        if (currentRoutePolyline) {
+            currentRouteMapInstance.removeLayer(currentRoutePolyline);
+            currentRoutePolyline = null;
+        }
+
+        if (waypoints.length === 0) {
+            setTimeout(() => {
+                currentRouteMapInstance.invalidateSize();
+            }, 250);
+            return;
+        }
+
+        const latLngs = [];
+        const bounds = L.latLngBounds();
+
+        waypoints.forEach((p, idx) => {
+            if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+            const ptLatLng = [p.lat, p.lng];
+            latLngs.push(ptLatLng);
+            bounds.extend(ptLatLng);
+
+            let markerIcon = null;
+            let popupContent = '';
+
+            if (p.type === 'CLOCK_IN') {
+                markerIcon = L.divIcon({
+                    className: 'leaflet-custom-marker',
+                    html: `<div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-emerald-400/50 animate-pulse"><i class="fa-solid fa-play text-[10px]"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                popupContent = `
+                    <div class="p-1 min-w-[200px] space-y-1 text-slate-800">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-slate-100 font-extrabold text-xs text-emerald-700">
+                            <i class="fa-solid fa-location-crosshairs"></i> TITIK CLOCK-IN (AWAL)
+                        </div>
+                        <div class="text-[11px]"><span class="font-bold">Waktu:</span> ${p.time || absen.jamIn || '--:--'} WIB</div>
+                        <div class="text-[11px]"><span class="font-bold">Stasiun:</span> ${absen.stasiunIn || absen.stasiun || '-'}</div>
+                        <div class="text-[11px]"><span class="font-bold">Target Visit:</span> ${absen.targetVisit || '-'} | Target HC: ${absen.targetClosingHc || '-'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono-code pt-0.5">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        ${absen.fotoIn ? `<div class="pt-1.5"><a href="${absen.fotoIn}" target="_blank" class="block text-center py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition">Lihat Foto Masuk</a></div>` : ''}
+                    </div>
+                `;
+            } else if (p.type === 'DISCONNECTED') {
+                markerIcon = L.divIcon({
+                    className: 'leaflet-custom-marker',
+                    html: `<div class="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-rose-400/50"><i class="fa-solid fa-triangle-exclamation text-[11px]"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                popupContent = `
+                    <div class="p-1 min-w-[190px] space-y-1 text-slate-800">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-slate-100 font-extrabold text-xs text-rose-600">
+                            <i class="fa-solid fa-link-slash"></i> SINYAL GPS TERPUTUS
+                        </div>
+                        <div class="text-[11px]"><span class="font-bold">Waktu:</span> ${p.time} WIB</div>
+                        <div class="text-[11px] text-slate-600">${p.note || 'Koneksi GPS hilang atau izin dinonaktifkan'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono-code pt-0.5">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                    </div>
+                `;
+            } else if (p.type === 'RECONNECTED') {
+                markerIcon = L.divIcon({
+                    className: 'leaflet-custom-marker',
+                    html: `<div class="w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-sky-400/50"><i class="fa-solid fa-link text-[10px]"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                popupContent = `
+                    <div class="p-1 min-w-[190px] space-y-1 text-slate-800">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-slate-100 font-extrabold text-xs text-sky-600">
+                            <i class="fa-solid fa-rotate"></i> GPS TERSAMBUNG ULANG
+                        </div>
+                        <div class="text-[11px]"><span class="font-bold">Waktu:</span> ${p.time} WIB</div>
+                        <div class="text-[11px] text-slate-600">${p.note || 'Disambungkan kembali oleh pengguna via tombol'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono-code pt-0.5">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                    </div>
+                `;
+            } else if (p.type === 'CLOCK_OUT') {
+                markerIcon = L.divIcon({
+                    className: 'leaflet-custom-marker',
+                    html: `<div class="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-slate-400/50"><i class="fa-solid fa-flag-checkered text-[11px]"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                popupContent = `
+                    <div class="p-1 min-w-[200px] space-y-1 text-slate-800">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-slate-100 font-extrabold text-xs text-slate-900">
+                            <i class="fa-solid fa-flag-checkered"></i> TITIK CLOCK-OUT (AKHIR)
+                        </div>
+                        <div class="text-[11px]"><span class="font-bold">Waktu:</span> ${p.time || absen.jamOut || '--:--'} WIB</div>
+                        <div class="text-[11px]"><span class="font-bold">Stasiun:</span> ${absen.stasiunOut || absen.stasiun || '-'}</div>
+                        <div class="text-[11px]"><span class="font-bold">Realisasi:</span> WO ${absen.aktualWo || 0} | HC ${absen.aktualHc || 0}</div>
+                        <div class="text-[10px] text-slate-400 font-mono-code pt-0.5">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        ${absen.fotoOut ? `<div class="pt-1.5"><a href="${absen.fotoOut}" target="_blank" class="block text-center py-1 bg-slate-900 text-white hover:bg-slate-800 rounded-lg text-xs font-bold transition">Lihat Foto Pulang</a></div>` : ''}
+                    </div>
+                `;
+            } else if (idx === 0 || idx === waypoints.length - 1) {
+                // Pin umum untuk titik batas jika bukan Clock-In/Out
+                markerIcon = L.divIcon({
+                    className: 'leaflet-custom-marker',
+                    html: `<div class="w-5 h-5 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-[9px] shadow border border-white"><i class="fa-solid fa-location-dot"></i></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                popupContent = `<div class="p-1 text-xs"><b>Titik #${idx+1}</b><br>Waktu: ${p.time} WIB</div>`;
+            }
+
+            if (markerIcon) {
+                const marker = L.marker(ptLatLng, { icon: markerIcon }).addTo(currentRouteMapInstance);
+                if (popupContent) {
+                    marker.bindPopup(popupContent);
+                }
+                currentRouteMarkers.push(marker);
+            }
+        });
+
+        // Gambar Polyline Jalur Pelacakan
+        if (latLngs.length > 1) {
+            currentRoutePolyline = L.polyline(latLngs, {
+                color: '#ea580c', // Oranye kontras tinggi
+                weight: 5,
+                opacity: 0.85,
+                smoothFactor: 1
+            }).addTo(currentRouteMapInstance);
+        }
+
+        currentRouteBounds = bounds;
+
+        setTimeout(() => {
+            currentRouteMapInstance.invalidateSize();
+            if (currentRouteBounds && currentRouteBounds.isValid()) {
+                currentRouteMapInstance.fitBounds(currentRouteBounds, { padding: [50, 50], maxZoom: 16 });
+            }
+        }, 250);
+    }
+
+    function fitRouteMapBounds() {
+        if (currentRouteMapInstance && currentRouteBounds && currentRouteBounds.isValid()) {
+            currentRouteMapInstance.fitBounds(currentRouteBounds, { padding: [50, 50], maxZoom: 16 });
+        }
+    }
+
+    function refreshCurrentRouteMap() {
+        if (!currentTrackingContext) return;
+        openSalesRouteMapModal(
+            currentTrackingContext.idAbsen,
+            currentTrackingContext.username,
+            currentTrackingContext.tanggal,
+            currentTrackingContext.nama
+        );
+    }
+
+    function closeSalesRouteMapModal() {
+        const modal = document.getElementById('modalSalesRouteMap');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    // ================= ALL SALES MAP CONTROLLER (LIVE MONITORING PAGE) =================
+    let allSalesMapInstance = null;
+    let allSalesMapDataCache = [];
+    let allSalesMapLayers = [];
+    let allSalesMapBounds = null;
+
+    const SALES_ROUTE_COLORS = [
+        '#0284c7', // Sky Blue
+        '#ea580c', // Orange
+        '#16a34a', // Emerald Green
+        '#7c3aed', // Violet
+        '#d97706', // Amber
+        '#e11d48', // Rose
+        '#0891b2', // Cyan
+        '#4f46e5', // Indigo
+        '#059669', // Teal
+        '#c026d3'  // Fuchsia
+    ];
+
+    function onAllMapDateChange(val) {
+        if (!val) return;
+        selectedDate = val;
+        syncDateInputs();
+        loadAllSalesMapData();
+    }
+
+    function loadAllSalesMapData() {
+        const picker = document.getElementById('allMapDatePicker');
+        if (picker && picker.value) {
+            selectedDate = picker.value;
+        }
+
+        showLoading('Mengambil data rute seluruh sales...');
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+            if (res && res.success) {
+                allSalesMapDataCache = res.tracks || [];
+                populateAllSalesMapFilterDropdown();
+                renderAllSalesMapFromState();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal Muat Data', text: res ? res.message : 'Tidak ada data', confirmButtonColor: '#0284c7' });
+            }
+        }).withFailureHandler(err => {
+            hideLoading();
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: err.toString(), confirmButtonColor: '#0284c7' });
+        }).getAllSalesTrackingData(selectedDate);
+    }
+
+    function populateAllSalesMapFilterDropdown() {
+        const dropdown = document.getElementById('flt_allmap_sales');
+        if (!dropdown) return;
+
+        const currentVal = dropdown.value;
+        let html = `<option value="">Semua Sales (${allSalesMapDataCache.length} personel)</option>`;
+        allSalesMapDataCache.forEach(t => {
+            html += `<option value="${t.username}">${t.nama} (${t.statusKoneksi === 'COMPLETED' ? 'Selesai' : t.statusKoneksi === 'DISCONNECTED' ? 'Terputus' : 'Aktif'})</option>`;
+        });
+        dropdown.innerHTML = html;
+        if (currentVal) dropdown.value = currentVal;
+    }
+
+    function renderAllSalesMapFromState() {
+        const mapContainer = document.getElementById('leafletAllSalesMap');
+        if (!mapContainer) return;
+
+        if (!allSalesMapInstance) {
+            allSalesMapInstance = L.map('leafletAllSalesMap', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([-6.914744, 107.609810], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(allSalesMapInstance);
+        }
+
+        allSalesMapInstance.invalidateSize();
+
+        allSalesMapLayers.forEach(l => allSalesMapInstance.removeLayer(l));
+        allSalesMapLayers = [];
+
+        const showIn = document.getElementById('chk_map_in') ? document.getElementById('chk_map_in').checked : true;
+        const showRoute = document.getElementById('chk_map_route') ? document.getElementById('chk_map_route').checked : true;
+        const showDisconnect = document.getElementById('chk_map_disconnect') ? document.getElementById('chk_map_disconnect').checked : true;
+        const showReconnect = document.getElementById('chk_map_reconnect') ? document.getElementById('chk_map_reconnect').checked : true;
+        const showOut = document.getElementById('chk_map_out') ? document.getElementById('chk_map_out').checked : true;
+
+        const selectedSalesUsername = document.getElementById('flt_allmap_sales') ? document.getElementById('flt_allmap_sales').value.trim().toLowerCase() : '';
+
+        let filteredTracks = allSalesMapDataCache;
+        if (selectedSalesUsername) {
+            filteredTracks = allSalesMapDataCache.filter(t => t.username.toLowerCase() === selectedSalesUsername);
+            const mapEl = document.getElementById('leafletAllSalesMap');
+            if (mapEl) {
+                mapEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        renderAllSalesRosterList(allSalesMapDataCache, selectedSalesUsername);
+
+        const bounds = L.latLngBounds();
+        let validPointCount = 0;
+
+        filteredTracks.forEach((track, sIdx) => {
+            const waypoints = track.waypoints || [];
+            const salesColor = SALES_ROUTE_COLORS[sIdx % SALES_ROUTE_COLORS.length];
+            const routeLatLngs = [];
+
+            waypoints.forEach((p, pIdx) => {
+                if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+                const latLng = [p.lat, p.lng];
+                bounds.extend(latLng);
+                validPointCount++;
+
+                let markerIcon = null;
+                let popupContent = '';
+
+                if (p.type === 'CLOCK_IN' && showIn) {
+                    markerIcon = L.divIcon({
+                        className: 'leaflet-custom-marker',
+                        html: `<div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-emerald-400/50 animate-pulse"><i class="fa-solid fa-play text-[10px]"></i></div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    popupContent = `
+                        <div class="p-1 min-w-[200px] text-xs space-y-1 text-slate-800">
+                            <div class="font-extrabold text-emerald-700 pb-1 border-b border-slate-100 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot"></i> CLOCK-IN: ${track.nama}
+                            </div>
+                            <div><b>Jam In:</b> ${p.time || track.absen?.jamIn || '--:--'} WIB</div>
+                            <div><b>Stasiun:</b> ${track.absen?.stasiunIn || track.absen?.stasiun || '-'}</div>
+                            <div><b>Target Visit:</b> ${track.absen?.targetVisit || '-'} | Target HC: ${track.absen?.targetClosingHc || '-'}</div>
+                            <div class="text-[10px] text-slate-400 font-mono-code">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                            ${track.absen?.fotoIn ? `<a href="${track.absen.fotoIn}" target="_blank" class="block text-center mt-1 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold">Lihat Foto In</a>` : ''}
+                        </div>
+                    `;
+                } else if (p.type === 'DISCONNECTED' && showDisconnect) {
+                    markerIcon = L.divIcon({
+                        className: 'leaflet-custom-marker',
+                        html: `<div class="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-rose-400/50"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i></div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    popupContent = `
+                        <div class="p-1 min-w-[190px] text-xs space-y-1 text-slate-800">
+                            <div class="font-extrabold text-rose-600 pb-1 border-b border-slate-100 flex items-center gap-1">
+                                <i class="fa-solid fa-link-slash"></i> SINYAL PUTUS: ${track.nama}
+                            </div>
+                            <div><b>Waktu Putus:</b> ${p.time} WIB</div>
+                            <div class="text-slate-500 text-[11px]">${p.note || 'Sinyal GPS hilang / izin off'}</div>
+                            <div class="text-[10px] text-slate-400 font-mono-code">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        </div>
+                    `;
+                } else if (p.type === 'RECONNECTED' && showReconnect) {
+                    markerIcon = L.divIcon({
+                        className: 'leaflet-custom-marker',
+                        html: `<div class="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-sky-400/50"><i class="fa-solid fa-link text-[10px]"></i></div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    popupContent = `
+                        <div class="p-1 min-w-[190px] text-xs space-y-1 text-slate-800">
+                            <div class="font-extrabold text-sky-600 pb-1 border-b border-slate-100 flex items-center gap-1">
+                                <i class="fa-solid fa-rotate"></i> SAMBUNG ULANG: ${track.nama}
+                            </div>
+                            <div><b>Waktu:</b> ${p.time} WIB</div>
+                            <div class="text-slate-500 text-[11px]">${p.note || 'Tersambung kembali'}</div>
+                            <div class="text-[10px] text-slate-400 font-mono-code">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        </div>
+                    `;
+                } else if (p.type === 'CLOCK_OUT' && showOut) {
+                    markerIcon = L.divIcon({
+                        className: 'leaflet-custom-marker',
+                        html: `<div class="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ring-2 ring-slate-400/50"><i class="fa-solid fa-flag-checkered text-[10px]"></i></div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    popupContent = `
+                        <div class="p-1 min-w-[200px] text-xs space-y-1 text-slate-800">
+                            <div class="font-extrabold text-slate-900 pb-1 border-b border-slate-100 flex items-center gap-1">
+                                <i class="fa-solid fa-flag-checkered"></i> CLOCK-OUT: ${track.nama}
+                            </div>
+                            <div><b>Jam Out:</b> ${p.time || track.absen?.jamOut || '--:--'} WIB</div>
+                            <div><b>Stasiun:</b> ${track.absen?.stasiunOut || track.absen?.stasiun || '-'}</div>
+                            <div><b>Realisasi:</b> WO ${track.absen?.aktualWo || 0} | HC ${track.absen?.aktualHc || 0}</div>
+                            <div class="text-[10px] text-slate-400 font-mono-code">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                            ${track.absen?.fotoOut ? `<a href="${track.absen.fotoOut}" target="_blank" class="block text-center mt-1 py-1 bg-slate-900 text-white rounded-lg font-bold">Lihat Foto Out</a>` : ''}
+                        </div>
+                    `;
+                }
+
+                if (markerIcon) {
+                    const marker = L.marker(latLng, { icon: markerIcon }).addTo(allSalesMapInstance);
+                    if (popupContent) marker.bindPopup(popupContent);
+                    allSalesMapLayers.push(marker);
+                }
+
+                routeLatLngs.push(latLng);
+            });
+
+            if (showRoute && routeLatLngs.length > 1) {
+                const polyline = L.polyline(routeLatLngs, {
+                    color: salesColor,
+                    weight: 4,
+                    opacity: 0.85,
+                    smoothFactor: 1
+                }).addTo(allSalesMapInstance);
+
+                polyline.bindTooltip(`<b>${track.nama}</b> (${track.totalJarakKm || 0} km)`, { sticky: true });
+                allSalesMapLayers.push(polyline);
+            }
+        });
+
+        allSalesMapBounds = bounds;
+
+        setTimeout(() => {
+            if (allSalesMapInstance) {
+                allSalesMapInstance.invalidateSize();
+                if (validPointCount > 0 && allSalesMapBounds.isValid()) {
+                    allSalesMapInstance.fitBounds(allSalesMapBounds, { padding: [50, 50], maxZoom: 15 });
+                } else if (allSalesMapDataCache.length > 0) {
+                    for (let t of allSalesMapDataCache) {
+                        if (t.waypoints && t.waypoints.length > 0 && typeof t.waypoints[0].lat === 'number') {
+                            allSalesMapInstance.setView([t.waypoints[0].lat, t.waypoints[0].lng], 13);
+                            break;
+                        }
+                    }
+                }
+            }
+        }, 150);
+    }
+
+    function renderAllSalesRosterList(tracks, activeUsername) {
+        const container = document.getElementById('allMapSalesListContainer');
+        const countEl = document.getElementById('allMapCountSales');
+        const avgEl = document.getElementById('allMapAvgKmHeader');
+        if (!container) return;
+
+        if (countEl) countEl.textContent = tracks.length;
+
+        let sumKm = 0;
+        tracks.forEach(t => { sumKm += Number(t.totalJarakKm || 0); });
+        const avgKm = tracks.length > 0 ? (sumKm / tracks.length).toFixed(2) : '0.00';
+        if (avgEl) avgEl.textContent = `Rata: ${avgKm} km`;
+
+        if (tracks.length === 0) {
+            container.innerHTML = `
+                <div class="p-6 text-center text-slate-400 text-xs">
+                    <i class="fa-solid fa-map-pin text-2xl mb-1.5 opacity-40 block"></i>
+                    Belum ada data kehadiran atau pergerakan sales pada tanggal ini.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = tracks.map((t, idx) => {
+            const isSelected = activeUsername && t.username.toLowerCase() === activeUsername;
+            const salesColor = SALES_ROUTE_COLORS[idx % SALES_ROUTE_COLORS.length];
+            const isCompleted = t.statusKoneksi === 'COMPLETED' || t.absen?.jamOut;
+            const isDisconnected = t.statusKoneksi === 'DISCONNECTED';
+
+            const statusBadge = isCompleted
+                ? `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Selesai</span>`
+                : isDisconnected
+                ? `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-50 text-rose-600 border border-rose-200 animate-pulse">Terputus</span>`
+                : `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-0.5"></span> Aktif</span>`;
+
+            return `
+                <div onclick="focusSalesRouteOnMap('${t.username}')"
+                    class="p-2.5 rounded-xl border transition cursor-pointer select-none ${isSelected ? 'bg-white border-sky-500 shadow-sm ring-2 ring-sky-500/20' : 'bg-white hover:bg-slate-100 border-slate-200/80 shadow-2xs'}">
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${salesColor};"></span>
+                            <span class="font-bold text-xs text-slate-900 truncate">${t.nama}</span>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="flex items-center justify-between text-[10.5px] text-slate-500 font-medium">
+                        <span><i class="fa-solid fa-train text-[9px] mr-1 text-slate-400"></i>${t.absen?.stasiunIn || t.absen?.stasiun || '-'}</span>
+                        <span class="font-mono-code font-bold text-orange-600">${(t.totalJarakKm || 0).toFixed(2)} km</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
+                        <span>In: ${t.absen?.jamIn || '--:--'} | Out: ${t.absen?.jamOut || '--:--'}</span>
+                        <span>${t.waypoints?.length || 0} titik</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function focusSalesRouteOnMap(username) {
+        const dropdown = document.getElementById('flt_allmap_sales');
+        if (dropdown) {
+            dropdown.value = username;
+        }
+        renderAllSalesMapFromState();
+        const mapEl = document.getElementById('leafletAllSalesMap');
+        if (mapEl) {
+            mapEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function fitAllSalesMapBounds() {
+        if (allSalesMapInstance && allSalesMapBounds && allSalesMapBounds.isValid()) {
+            allSalesMapInstance.fitBounds(allSalesMapBounds, { padding: [50, 50], maxZoom: 15 });
+        }
     }
 </script>

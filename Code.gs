@@ -96,6 +96,7 @@ function setupDatabase() {
   }
 
   upgradeAbsensiSheetHeaders_();
+  setupGpsTracksSheet_();
 
   try {
     DriveApp.getFolderById(MAIN_FOLDER_ID).getName();
@@ -123,12 +124,26 @@ function upgradeAbsensiSheetHeaders_() {
   }
 }
 
+function setupGpsTracksSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let trackSheet = ss.getSheetByName('GPS_TRACKS');
+  if (!trackSheet) {
+    trackSheet = ss.insertSheet('GPS_TRACKS');
+    trackSheet.appendRow([
+      'ID_Absen', 'Tanggal', 'Username', 'Nama_Sales',
+      'Status_Koneksi', 'Last_Sync', 'Total_Titik', 'Total_Jarak_KM', 'Waypoints_JSON'
+    ]);
+    trackSheet.getRange('A1:I1').setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
+  }
+}
+
 function setupCheck_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   if (!ss.getSheetByName('USERS') || !ss.getSheetByName('ABSENSI') || !ss.getSheetByName('SETTINGS') || !ss.getSheetByName('STASIUN')) {
     setupDatabase();
   } else {
     upgradeAbsensiSheetHeaders_();
+    setupGpsTracksSheet_();
   }
 }
 
@@ -293,6 +308,7 @@ function getSalesTodayStatus(username) {
     let rowDate = formatRowDate_(data[i][1]);
     if (rowDate === todayStr && String(data[i][2]).toLowerCase() === String(username).toLowerCase()) {
       record = {
+        idAbsen: String(data[i][0] || ''),
         tanggal: rowDate,
         jamIn: formatRowTime_(data[i][7]),
         statusIn: String(data[i][8] || ''),
@@ -317,6 +333,7 @@ function getSalesTodayStatus(username) {
   for (let i = data.length - 1; i >= 1; i--) {
     if (String(data[i][2]).toLowerCase() === String(username).toLowerCase()) {
       history.push({
+        idAbsen: String(data[i][0] || ''),
         tanggal: formatRowDate_(data[i][1]),
         jamIn: formatRowTime_(data[i][7]),
         statusIn: String(data[i][8] || ''),
@@ -467,6 +484,7 @@ function submitAttendance(payload) {
 
       return { 
         success: true, 
+        idAbsen: idAbsen,
         message: `Clock-In berhasil pukul ${timeStr} ${tzInfo.label} (${statusIn}).` 
       };
 
@@ -500,6 +518,21 @@ function submitAttendance(payload) {
         pendingWo,
         cidListStr
       ]]);
+
+      // Update status tracking GPS menjadi COMPLETED jika ada
+      try {
+        const targetIdAbsen = String(data[existingRowIndex - 1][0]);
+        const trackSheet = ss.getSheetByName('GPS_TRACKS');
+        if (trackSheet) {
+          const tData = trackSheet.getDataRange().getValues();
+          for (let t = 1; t < tData.length; t++) {
+            if (String(tData[t][0]) === targetIdAbsen) {
+              trackSheet.getRange(t + 1, 5).setValue('COMPLETED');
+              break;
+            }
+          }
+        }
+      } catch (errTrack) {}
 
       return { 
         success: true, 
@@ -612,26 +645,50 @@ function getAdminDashboardData(filterDate) {
   const usersData = userSheet.getDataRange().getValues();
   const absenData = absenSheet.getDataRange().getValues();
 
+  const trackSheet = ss.getSheetByName('GPS_TRACKS');
+  const trackMap = {};
+  if (trackSheet) {
+    const tData = trackSheet.getDataRange().getValues();
+    for (let t = 1; t < tData.length; t++) {
+      const tId = String(tData[t][0]).trim();
+      const tUname = String(tData[t][2]).trim().toLowerCase();
+      const tTgl = formatRowDate_(tData[t][1]);
+      const statusKon = String(tData[t][4] || '');
+      const dist = Number(tData[t][7] || 0);
+      const ptsCount = Number(tData[t][6] || 0);
+      const tObj = { statusKoneksi: statusKon, totalJarakKm: dist, totalTitik: ptsCount };
+      if (tId) trackMap[tId] = tObj;
+      trackMap[tUname + '_' + tTgl] = tObj;
+    }
+  }
+
   let usersList = [];
   let salesOnlyList = [];
   let validUsernamesSet = {};
+  const seenSalesUsernames = new Set();
 
   for (let i = 1; i < usersData.length; i++) {
     if (!usersData[i][0]) continue;
+    let uname = String(usersData[i][1]).trim();
+    let role = String(usersData[i][3]).trim();
     let u = {
       id: String(usersData[i][0]),
-      username: String(usersData[i][1]),
+      username: uname,
       password: String(usersData[i][2]),
-      role: String(usersData[i][3]),
-      nama: String(usersData[i][4]),
-      status: String(usersData[i][5]),
-      provinsi: String(usersData[i][6]),
-      stasiun: String(usersData[i][7])
+      role: role,
+      nama: String(usersData[i][4]).trim(),
+      status: String(usersData[i][5]).trim(),
+      provinsi: String(usersData[i][6]).trim(),
+      stasiun: String(usersData[i][7]).trim()
     };
     usersList.push(u);
-    validUsernamesSet[u.username.toLowerCase()] = true;
-    if (u.role.toLowerCase() === 'sales') {
-      salesOnlyList.push(u);
+    validUsernamesSet[uname.toLowerCase()] = true;
+    if (role.toLowerCase() === 'sales') {
+      const uLower = uname.toLowerCase();
+      if (!seenSalesUsernames.has(uLower)) {
+        seenSalesUsernames.add(uLower);
+        salesOnlyList.push(u);
+      }
     }
   }
 
@@ -678,13 +735,18 @@ function getAdminDashboardData(filterDate) {
       cidList: String(absenData[i][26] || '')
     };
 
+    const tInfo = trackMap[logItem.id] || trackMap[unameKey + '_' + rowDate] || null;
+    logItem.trackingStatus = tInfo ? tInfo.statusKoneksi : (jamOutStr ? 'COMPLETED' : (jamInStr ? 'CONNECTED' : 'NO_DATA'));
+    logItem.totalJarakKm = tInfo ? tInfo.totalJarakKm : 0;
+    logItem.totalTitik = tInfo ? tInfo.totalTitik : 0;
+
     allLogs.push(logItem);
     if (rowDate === todayStr) {
       todayLogs.push(logItem);
     }
   }
 
-  const attendedUsernamesToday = todayLogs.map(l => l.username.toLowerCase());
+  const attendedUsernamesToday = todayLogs.map(l => String(l.username || '').trim().toLowerCase());
   const belumAbsenList = salesOnlyList.filter(s => !attendedUsernamesToday.includes(s.username.toLowerCase()));
   const stationsList = getStationsData_();
 
@@ -697,6 +759,381 @@ function getAdminDashboardData(filterDate) {
     allLogs: allLogs,
     belumAbsen: belumAbsenList,
     stations: stationsList
+  };
+}
+
+// ================= GPS TRACKING (LIVE ROUTE RECORDING) =================
+function calculateTotalDistanceKm_(pts) {
+  if (!pts || pts.length < 2) return 0;
+  let totalKm = 0;
+  let lastLat = null, lastLng = null;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    if (p && typeof p.lat === 'number' && typeof p.lng === 'number') {
+      if (lastLat !== null && lastLng !== null) {
+        const dLat = (p.lat - lastLat) * Math.PI / 180;
+        const dLon = (p.lng - lastLng) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lastLat * Math.PI / 180) * Math.cos(p.lat * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const d = 6371 * c; // KM
+        if (d < 50) { // filter GPS anomaly teleport (> 50 km jumping)
+          totalKm += d;
+        }
+      }
+      lastLat = p.lat;
+      lastLng = p.lng;
+    }
+  }
+  return Math.round(totalKm * 100) / 100;
+}
+
+function syncGpsTracking(payload) {
+  if (!payload || !payload.idAbsen) {
+    return { success: false, message: 'ID Absen tidak valid' };
+  }
+  setupCheck_();
+  setupGpsTracksSheet_();
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const trackSheet = ss.getSheetByName('GPS_TRACKS');
+  const data = trackSheet.getDataRange().getValues();
+
+  const idAbsen = String(payload.idAbsen).trim();
+  const tanggal = String(payload.tanggal || '').trim();
+  const username = String(payload.username || '').trim();
+  const nama = String(payload.nama || '').trim();
+  const statusKoneksi = String(payload.statusKoneksi || 'CONNECTED');
+  const newPoints = Array.isArray(payload.points) ? payload.points : [];
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+  let existingRowIndex = -1;
+  let existingWaypoints = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === idAbsen) {
+      existingRowIndex = i + 1;
+      try {
+        existingWaypoints = JSON.parse(String(data[i][8] || '[]'));
+      } catch (e) {
+        existingWaypoints = [];
+      }
+      break;
+    }
+  }
+
+  let mergedWaypoints = existingWaypoints.slice();
+  if (newPoints.length > 0) {
+    for (let p of newPoints) {
+      const last = mergedWaypoints[mergedWaypoints.length - 1];
+      if (!last || last.time !== p.time || p.type === 'DISCONNECTED' || p.type === 'RECONNECTED' || p.type === 'CLOCK_OUT') {
+        mergedWaypoints.push(p);
+      }
+    }
+  }
+
+  const totalDistKm = calculateTotalDistanceKm_(mergedWaypoints);
+  const pointsJson = JSON.stringify(mergedWaypoints);
+
+  if (existingRowIndex > 0) {
+    trackSheet.getRange(existingRowIndex, 5, 1, 5).setValues([[
+      statusKoneksi,
+      nowStr,
+      mergedWaypoints.length,
+      totalDistKm,
+      pointsJson
+    ]]);
+  } else {
+    trackSheet.appendRow([
+      idAbsen,
+      tanggal,
+      username,
+      nama,
+      statusKoneksi,
+      nowStr,
+      mergedWaypoints.length,
+      totalDistKm,
+      pointsJson
+    ]);
+  }
+
+  return {
+    success: true,
+    totalTitik: mergedWaypoints.length,
+    totalJarakKm: totalDistKm,
+    statusKoneksi: statusKoneksi
+  };
+}
+
+function getGpsTrackingData(idAbsen, username, tanggal) {
+  setupCheck_();
+  setupGpsTracksSheet_();
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const trackSheet = ss.getSheetByName('GPS_TRACKS');
+  const absenSheet = ss.getSheetByName('ABSENSI');
+
+  let trackRecord = null;
+  const trackData = trackSheet.getDataRange().getValues();
+  for (let i = 1; i < trackData.length; i++) {
+    const rowId = String(trackData[i][0]).trim();
+    const rowUname = String(trackData[i][2]).trim().toLowerCase();
+    const rowTgl = formatRowDate_(trackData[i][1]);
+
+    if ((idAbsen && rowId === String(idAbsen).trim()) || 
+        (username && tanggal && rowUname === String(username).toLowerCase() && rowTgl === String(tanggal))) {
+      let pts = [];
+      try {
+        pts = JSON.parse(String(trackData[i][8] || '[]'));
+      } catch (e) {
+        pts = [];
+      }
+      trackRecord = {
+        idAbsen: rowId,
+        tanggal: rowTgl,
+        username: String(trackData[i][2]),
+        nama: String(trackData[i][3]),
+        statusKoneksi: String(trackData[i][4] || 'CONNECTED'),
+        lastSync: String(trackData[i][5] || ''),
+        totalTitik: Number(trackData[i][6] || pts.length),
+        totalJarakKm: Number(trackData[i][7] || 0),
+        waypoints: pts
+      };
+      break;
+    }
+  }
+
+  let absenDetail = null;
+  const absenData = absenSheet.getDataRange().getValues();
+  for (let j = 1; j < absenData.length; j++) {
+    const aId = String(absenData[j][0]).trim();
+    const aUname = String(absenData[j][2]).trim().toLowerCase();
+    const aTgl = formatRowDate_(absenData[j][1]);
+
+    if ((idAbsen && aId === String(idAbsen).trim()) ||
+        (username && tanggal && aUname === String(username).toLowerCase() && aTgl === String(tanggal))) {
+      absenDetail = {
+        idAbsen: aId,
+        tanggal: aTgl,
+        username: String(absenData[j][2]),
+        nama: String(absenData[j][3]),
+        statusSales: String(absenData[j][4]),
+        provinsi: String(absenData[j][5]),
+        stasiun: String(absenData[j][6]),
+        jamIn: formatRowTime_(absenData[j][7]),
+        statusIn: String(absenData[j][8] || ''),
+        koordinatIn: String(absenData[j][9] || ''),
+        mapsIn: String(absenData[j][10] || ''),
+        fotoIn: String(absenData[j][11] || ''),
+        jamOut: formatRowTime_(absenData[j][12]),
+        statusOut: String(absenData[j][13] || ''),
+        koordinatOut: String(absenData[j][14] || ''),
+        mapsOut: String(absenData[j][15] || ''),
+        fotoOut: String(absenData[j][16] || ''),
+        stasiunIn: String(absenData[j][17] || ''),
+        targetVisit: formatNumberOrBlank_(absenData[j][18]),
+        visitKemanaIn: String(absenData[j][19] || ''),
+        targetClosingHc: formatNumberOrBlank_(absenData[j][20]),
+        stasiunOut: String(absenData[j][21] || ''),
+        visitKemanaOut: String(absenData[j][22] || ''),
+        aktualWo: formatNumberOrBlank_(absenData[j][23]),
+        aktualHc: formatNumberOrBlank_(absenData[j][24]),
+        pendingWo: formatNumberOrBlank_(absenData[j][25]),
+        cidList: String(absenData[j][26] || '')
+      };
+      break;
+    }
+  }
+
+  // Graceful fallback synthesis jika data belum punya log titik rute terinci
+  if (!trackRecord && absenDetail) {
+    let syntheticPts = [];
+    if (absenDetail.koordinatIn && absenDetail.koordinatIn.includes(',')) {
+      const parts = absenDetail.koordinatIn.split(',').map(s => parseFloat(s.trim()));
+      if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+        syntheticPts.push({
+          type: 'CLOCK_IN',
+          lat: parts[0],
+          lng: parts[1],
+          time: absenDetail.jamIn || '08:00',
+          acc: 15,
+          note: 'Titik Clock-In'
+        });
+      }
+    }
+    if (absenDetail.koordinatOut && absenDetail.koordinatOut.includes(',')) {
+      const parts = absenDetail.koordinatOut.split(',').map(s => parseFloat(s.trim()));
+      if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+        syntheticPts.push({
+          type: 'CLOCK_OUT',
+          lat: parts[0],
+          lng: parts[1],
+          time: absenDetail.jamOut || '18:00',
+          acc: 15,
+          note: 'Titik Clock-Out'
+        });
+      }
+    }
+    trackRecord = {
+      idAbsen: absenDetail.idAbsen,
+      tanggal: absenDetail.tanggal,
+      username: absenDetail.username,
+      nama: absenDetail.nama,
+      statusKoneksi: absenDetail.jamOut ? 'COMPLETED' : 'CONNECTED',
+      lastSync: absenDetail.jamOut ? absenDetail.jamOut : absenDetail.jamIn,
+      totalTitik: syntheticPts.length,
+      totalJarakKm: calculateTotalDistanceKm_(syntheticPts),
+      waypoints: syntheticPts
+    };
+  }
+
+  return {
+    success: true,
+    tracking: trackRecord,
+    absenDetail: absenDetail
+  };
+}
+
+function getAllSalesTrackingData(dateStr) {
+  setupCheck_();
+  setupGpsTracksSheet_();
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const trackSheet = ss.getSheetByName('GPS_TRACKS');
+  const absenSheet = ss.getSheetByName('ABSENSI');
+
+  const todayStr = dateStr || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+
+  const trackData = trackSheet ? trackSheet.getDataRange().getValues() : [];
+  const absenData = absenSheet.getDataRange().getValues();
+
+  // Absen map per user untuk tanggal terpilih
+  const absenMap = {};
+  for (let j = 1; j < absenData.length; j++) {
+    const aId = String(absenData[j][0]).trim();
+    const aTgl = formatRowDate_(absenData[j][1]);
+    const aUname = String(absenData[j][2]).trim().toLowerCase();
+
+    if (aTgl === todayStr) {
+      const aObj = {
+        idAbsen: aId,
+        tanggal: aTgl,
+        username: String(absenData[j][2]),
+        nama: String(absenData[j][3]),
+        statusSales: String(absenData[j][4]),
+        provinsi: String(absenData[j][5]),
+        stasiun: String(absenData[j][6]),
+        jamIn: formatRowTime_(absenData[j][7]),
+        statusIn: String(absenData[j][8] || ''),
+        koordinatIn: String(absenData[j][9] || ''),
+        fotoIn: String(absenData[j][11] || ''),
+        jamOut: formatRowTime_(absenData[j][12]),
+        statusOut: String(absenData[j][13] || ''),
+        koordinatOut: String(absenData[j][14] || ''),
+        fotoOut: String(absenData[j][16] || ''),
+        stasiunIn: String(absenData[j][17] || ''),
+        targetVisit: formatNumberOrBlank_(absenData[j][18]),
+        visitKemanaIn: String(absenData[j][19] || ''),
+        targetClosingHc: formatNumberOrBlank_(absenData[j][20]),
+        stasiunOut: String(absenData[j][21] || ''),
+        visitKemanaOut: String(absenData[j][22] || ''),
+        aktualWo: formatNumberOrBlank_(absenData[j][23]),
+        aktualHc: formatNumberOrBlank_(absenData[j][24]),
+        pendingWo: formatNumberOrBlank_(absenData[j][25])
+      };
+      absenMap[aId] = aObj;
+      absenMap[aUname] = aObj;
+    }
+  }
+
+  const salesTracks = [];
+  const trackedUsernames = {};
+
+  for (let i = 1; i < trackData.length; i++) {
+    const rowTgl = formatRowDate_(trackData[i][1]);
+    if (rowTgl === todayStr) {
+      const rId = String(trackData[i][0]).trim();
+      const rUname = String(trackData[i][2]).trim().toLowerCase();
+      let pts = [];
+      try {
+        pts = JSON.parse(String(trackData[i][8] || '[]'));
+      } catch (e) {
+        pts = [];
+      }
+
+      const absenInfo = absenMap[rId] || absenMap[rUname] || {};
+      trackedUsernames[rUname] = true;
+
+      // Graceful fallback jika pts kosong di GPS_TRACKS namun absen memiliki koordinat
+      if (pts.length === 0) {
+        if (absenInfo.koordinatIn && absenInfo.koordinatIn.includes(',')) {
+          const parts = absenInfo.koordinatIn.split(',').map(s => parseFloat(s.trim()));
+          if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+            pts.push({ type: 'CLOCK_IN', lat: parts[0], lng: parts[1], time: absenInfo.jamIn || '08:00', acc: 15, note: 'Titik Clock-In' });
+          }
+        }
+        if (absenInfo.koordinatOut && absenInfo.koordinatOut.includes(',')) {
+          const parts = absenInfo.koordinatOut.split(',').map(s => parseFloat(s.trim()));
+          if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+            pts.push({ type: 'CLOCK_OUT', lat: parts[0], lng: parts[1], time: absenInfo.jamOut || '18:00', acc: 15, note: 'Titik Clock-Out' });
+          }
+        }
+      }
+
+      salesTracks.push({
+        idAbsen: rId,
+        tanggal: rowTgl,
+        username: String(trackData[i][2]),
+        nama: String(trackData[i][3]) || absenInfo.nama || rUname,
+        statusKoneksi: String(trackData[i][4] || (absenInfo.jamOut ? 'COMPLETED' : 'CONNECTED')),
+        lastSync: String(trackData[i][5] || ''),
+        totalTitik: Number(trackData[i][6] || pts.length),
+        totalJarakKm: Number(trackData[i][7] || calculateTotalDistanceKm_(pts)),
+        waypoints: pts,
+        absen: absenInfo
+      });
+    }
+  }
+
+  // Graceful synthesis untuk data absen yang belum ada baris di GPS_TRACKS
+  Object.keys(absenMap).forEach(key => {
+    const a = absenMap[key];
+    const uKey = a.username.toLowerCase();
+    if (!trackedUsernames[uKey]) {
+      trackedUsernames[uKey] = true;
+      let synPts = [];
+      if (a.koordinatIn && a.koordinatIn.includes(',')) {
+        const parts = a.koordinatIn.split(',').map(s => parseFloat(s.trim()));
+        if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+          synPts.push({ type: 'CLOCK_IN', lat: parts[0], lng: parts[1], time: a.jamIn || '08:00', acc: 15, note: 'Titik Clock-In' });
+        }
+      }
+      if (a.koordinatOut && a.koordinatOut.includes(',')) {
+        const parts = a.koordinatOut.split(',').map(s => parseFloat(s.trim()));
+        if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+          synPts.push({ type: 'CLOCK_OUT', lat: parts[0], lng: parts[1], time: a.jamOut || '18:00', acc: 15, note: 'Titik Clock-Out' });
+        }
+      }
+      salesTracks.push({
+        idAbsen: a.idAbsen,
+        tanggal: a.tanggal,
+        username: a.username,
+        nama: a.nama,
+        statusKoneksi: a.jamOut ? 'COMPLETED' : 'CONNECTED',
+        lastSync: a.jamOut || a.jamIn,
+        totalTitik: synPts.length,
+        totalJarakKm: calculateTotalDistanceKm_(synPts),
+        waypoints: synPts,
+        absen: a
+      });
+    }
+  });
+
+  return {
+    success: true,
+    date: todayStr,
+    tracks: salesTracks
   };
 }
 
@@ -922,9 +1359,22 @@ function deleteUserAdmin(userId, callerRole) {
   // Hapus juga Folder Induk milik Sales tersebut di Google Drive
   trashSalesFolderInDrive_(targetSalesName);
 
+  // Hapus semua data pelacakan rute milik user di Sheet GPS_TRACKS
+  try {
+    const trackSheet = ss.getSheetByName('GPS_TRACKS');
+    if (trackSheet) {
+      const tData = trackSheet.getDataRange().getValues();
+      for (let k = tData.length - 1; k >= 1; k--) {
+        if (String(tData[k][2]).trim().toLowerCase() === targetUsername) {
+          trackSheet.deleteRow(k + 1);
+        }
+      }
+    }
+  } catch (eTrack) {}
+
   return { 
     success: true, 
-    message: `Akun "${targetSalesName}" dihapus beserta ${deletedLogs} data absensi dan seluruh folder/file fotonya di Google Drive.` 
+    message: `Akun "${targetSalesName}" dihapus beserta ${deletedLogs} data absensi, rekaman GPS track, dan seluruh file fotonya di Google Drive.` 
   };
 }
 
