@@ -270,7 +270,7 @@ function verifyUserSession(username, userId) {
 }
 
 // ================= SALES ATTENDANCE LOGIC =================
-function getSalesTodayStatus(username) {
+function getSalesTodayStatus(username, nama) {
   setupCheck_();
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userSheet = ss.getSheetByName('USERS');
@@ -281,10 +281,14 @@ function getSalesTodayStatus(username) {
   let userProvinsi = 'Jawa Barat';
   let userFound = false;
   for (let u = 1; u < userData.length; u++) {
-    if (String(userData[u][1]).trim().toLowerCase() === String(username).trim().toLowerCase()) {
-      userProvinsi = String(userData[u][6]);
-      userFound = true;
-      break;
+    let rowUname = String(userData[u][1]).trim().toLowerCase();
+    let rowNama = String(userData[u][4]).trim().toLowerCase();
+    if (rowUname === String(username).trim().toLowerCase()) {
+      if (!nama || rowNama === String(nama).trim().toLowerCase()) {
+        userProvinsi = String(userData[u][6]);
+        userFound = true;
+        break;
+      }
     }
   }
 
@@ -306,7 +310,9 @@ function getSalesTodayStatus(username) {
   let record = null;
   for (let i = data.length - 1; i >= 1; i--) {
     let rowDate = formatRowDate_(data[i][1]);
-    if (rowDate === todayStr && String(data[i][2]).toLowerCase() === String(username).toLowerCase()) {
+    let rowUname = String(data[i][2]).toLowerCase();
+    let rowNama = String(data[i][3]).toLowerCase();
+    if (rowDate === todayStr && rowUname === String(username).toLowerCase() && (!nama || rowNama === String(nama).toLowerCase())) {
       record = {
         idAbsen: String(data[i][0] || ''),
         tanggal: rowDate,
@@ -331,7 +337,9 @@ function getSalesTodayStatus(username) {
 
   let history = [];
   for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][2]).toLowerCase() === String(username).toLowerCase()) {
+    let rowUname = String(data[i][2]).toLowerCase();
+    let rowNama = String(data[i][3]).toLowerCase();
+    if (rowUname === String(username).toLowerCase() && (!nama || rowNama === String(nama).toLowerCase())) {
       history.push({
         idAbsen: String(data[i][0] || ''),
         tanggal: formatRowDate_(data[i][1]),
@@ -419,7 +427,9 @@ function submitAttendance(payload) {
     let existingRowIndex = -1;
     for (let i = data.length - 1; i >= 1; i--) {
       let rowDate = formatRowDate_(data[i][1]);
-      if (rowDate === todayStr && String(data[i][2]).toLowerCase() === String(payload.username).toLowerCase()) {
+      let rowUname = String(data[i][2]).toLowerCase();
+      let rowNama = String(data[i][3]).toLowerCase();
+      if (rowDate === todayStr && rowUname === String(payload.username).toLowerCase() && (!payload.nama || rowNama === String(payload.nama).toLowerCase())) {
         existingRowIndex = i + 1;
         break;
       }
@@ -665,7 +675,6 @@ function getAdminDashboardData(filterDate) {
   let usersList = [];
   let salesOnlyList = [];
   let validUsernamesSet = {};
-  const seenSalesUsernames = new Set();
 
   for (let i = 1; i < usersData.length; i++) {
     if (!usersData[i][0]) continue;
@@ -684,11 +693,7 @@ function getAdminDashboardData(filterDate) {
     usersList.push(u);
     validUsernamesSet[uname.toLowerCase()] = true;
     if (role.toLowerCase() === 'sales') {
-      const uLower = uname.toLowerCase();
-      if (!seenSalesUsernames.has(uLower)) {
-        seenSalesUsernames.add(uLower);
-        salesOnlyList.push(u);
-      }
+      salesOnlyList.push(u);
     }
   }
 
@@ -746,8 +751,9 @@ function getAdminDashboardData(filterDate) {
     }
   }
 
-  const attendedUsernamesToday = todayLogs.map(l => String(l.username || '').trim().toLowerCase());
-  const belumAbsenList = salesOnlyList.filter(s => !attendedUsernamesToday.includes(s.username.toLowerCase()));
+  // Evaluasi kehadiran per individu sales hari ini menggunakan composite key (username + nama)
+  const attendedSalesSet = new Set(todayLogs.map(l => (String(l.username || '').trim().toLowerCase() + '|' + String(l.nama || '').trim().toLowerCase())));
+  const belumAbsenList = salesOnlyList.filter(s => !attendedSalesSet.has(s.username.toLowerCase() + '|' + s.nama.toLowerCase()));
   const stationsList = getStationsData_();
 
   return {
@@ -1014,6 +1020,7 @@ function getAllSalesTrackingData(dateStr) {
     const aId = String(absenData[j][0]).trim();
     const aTgl = formatRowDate_(absenData[j][1]);
     const aUname = String(absenData[j][2]).trim().toLowerCase();
+    const aNama = String(absenData[j][3]).trim().toLowerCase();
 
     if (aTgl === todayStr) {
       const aObj = {
@@ -1043,18 +1050,21 @@ function getAllSalesTrackingData(dateStr) {
         pendingWo: formatNumberOrBlank_(absenData[j][25])
       };
       absenMap[aId] = aObj;
-      absenMap[aUname] = aObj;
+      absenMap[aUname + '|' + aNama] = aObj;
+      if (!absenMap[aUname]) absenMap[aUname] = aObj;
     }
   }
 
   const salesTracks = [];
-  const trackedUsernames = {};
+  const trackedUserKeys = {};
 
   for (let i = 1; i < trackData.length; i++) {
     const rowTgl = formatRowDate_(trackData[i][1]);
     if (rowTgl === todayStr) {
       const rId = String(trackData[i][0]).trim();
       const rUname = String(trackData[i][2]).trim().toLowerCase();
+      const rNama = String(trackData[i][3]).trim().toLowerCase();
+      const userKey = rUname + '|' + rNama;
       let pts = [];
       try {
         pts = JSON.parse(String(trackData[i][8] || '[]'));
@@ -1062,8 +1072,9 @@ function getAllSalesTrackingData(dateStr) {
         pts = [];
       }
 
-      const absenInfo = absenMap[rId] || absenMap[rUname] || {};
-      trackedUsernames[rUname] = true;
+      const absenInfo = absenMap[rId] || absenMap[userKey] || absenMap[rUname] || {};
+      trackedUserKeys[userKey] = true;
+      trackedUserKeys[rId] = true;
 
       // Graceful fallback jika pts kosong di GPS_TRACKS namun absen memiliki koordinat
       if (pts.length === 0) {
@@ -1098,10 +1109,12 @@ function getAllSalesTrackingData(dateStr) {
 
   // Graceful synthesis untuk data absen yang belum ada baris di GPS_TRACKS
   Object.keys(absenMap).forEach(key => {
+    if (key.includes('|') || !key.startsWith('ABS_')) return;
     const a = absenMap[key];
-    const uKey = a.username.toLowerCase();
-    if (!trackedUsernames[uKey]) {
-      trackedUsernames[uKey] = true;
+    const uKey = a.username.toLowerCase() + '|' + a.nama.toLowerCase();
+    if (!trackedUserKeys[uKey] && !trackedUserKeys[a.idAbsen]) {
+      trackedUserKeys[uKey] = true;
+      trackedUserKeys[a.idAbsen] = true;
       let synPts = [];
       if (a.koordinatIn && a.koordinatIn.includes(',')) {
         const parts = a.koordinatIn.split(',').map(s => parseFloat(s.trim()));

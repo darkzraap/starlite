@@ -141,7 +141,7 @@
         }).withFailureHandler(err => {
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Gagal Memuat Data', text: err.toString(), confirmButtonColor: '#0f766e' });
-        }).getSalesTodayStatus(currentUser.username);
+        }).getSalesTodayStatus(currentUser.username, currentUser.nama);
     }
 
     function renderStationCheckboxes(containerId, nameAttr, preSelectedList = []) {

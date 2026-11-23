@@ -572,10 +572,10 @@
             </div>
         </div>
 
-        <!-- Main Workspace: Split View (Sales Roster on Left + Interactive Leaflet Map on Right) -->
-        <div class="flex flex-col lg:flex-row w-full relative border-t border-slate-100" style="min-height: 480px;">
+        <!-- Main Workspace: Split View (Map on Top on Mobile, Right on Desktop; Roster on Bottom on Mobile, Left on Desktop) -->
+        <div class="flex flex-col-reverse lg:flex-row w-full relative border-t border-slate-100">
             <!-- Left Panel: Roster Sales Active Today -->
-            <div class="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-slate-50/50 flex flex-col shrink-0 h-48 lg:h-[480px]">
+            <div class="w-full lg:w-80 border-t lg:border-t-0 lg:border-r border-slate-200/80 bg-slate-50/50 flex flex-col shrink-0 h-52 lg:h-[460px]">
                 <div class="p-3 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
                     <span class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
                         <i class="fa-solid fa-users-viewfinder text-sky-600"></i>
@@ -589,8 +589,8 @@
             </div>
 
             <!-- Right Panel: Full Leaflet Map -->
-            <div class="flex-1 relative bg-slate-100" style="min-height: 480px; height: 480px;">
-                <div id="leafletAllSalesMap" style="width: 100%; height: 480px; min-height: 480px; z-index: 10;"></div>
+            <div class="flex-1 relative bg-slate-100 min-h-[420px] lg:min-h-[460px] h-[420px] lg:h-[460px]">
+                <div id="leafletAllSalesMap" class="w-full h-full" style="z-index: 10;"></div>
 
                 <!-- Floating Legend -->
                 <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200 shadow-md text-[10.5px] font-semibold text-slate-700 space-y-1.5" style="z-index: 1000;">

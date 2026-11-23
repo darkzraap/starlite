@@ -1,11 +1,16 @@
 <script>
     // ================= ADMIN FLOW & DASHBOARD LOGIC =================
-    let selectedDate = new Date().toISOString().split('T')[0];
+    function getLocalDateStr_() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    let selectedDate = getLocalDateStr_();
 
     function syncDateInputs() {
         if (!selectedDate) {
             const adminInput = document.getElementById('adminDateFilter');
-            selectedDate = (adminInput && adminInput.value) ? adminInput.value : new Date().toISOString().split('T')[0];
+            selectedDate = (adminInput && adminInput.value) ? adminInput.value : getLocalDateStr_();
         }
         if (document.getElementById('adminDateFilter')) document.getElementById('adminDateFilter').value = selectedDate;
         if (document.getElementById('sumStartDate')) document.getElementById('sumStartDate').value = selectedDate;
@@ -18,15 +23,14 @@
         const input = document.getElementById('adminDateFilter');
         const curr = new Date(input.value || new Date());
         curr.setDate(curr.getDate() + days);
-        const iso = curr.toISOString().split('T')[0];
-        input.value = iso;
+        const pad = n => String(n).padStart(2, '0');
+        input.value = `${curr.getFullYear()}-${pad(curr.getMonth() + 1)}-${pad(curr.getDate())}`;
         onHeaderDateChange();
     }
 
     function setAdminDateToday() {
         const input = document.getElementById('adminDateFilter');
-        const today = new Date().toISOString().split('T')[0];
-        input.value = today;
+        input.value = getLocalDateStr_();
         onHeaderDateChange();
     }
 
@@ -89,7 +93,7 @@
 
         const activeEl = document.getElementById(tabId);
         if (activeEl) activeEl.classList.remove('hidden');
-        
+
         const titleText = titles[tabId] || 'Attendance';
         const pageTitleEl = document.getElementById('adminPageTitle');
         if (pageTitleEl) pageTitleEl.textContent = titleText;
@@ -118,7 +122,12 @@
                 if (allSalesMapInstance) {
                     allSalesMapInstance.invalidateSize();
                 }
-            }, 100);
+            }, 60);
+            setTimeout(() => {
+                if (allSalesMapInstance) {
+                    allSalesMapInstance.invalidateSize();
+                }
+            }, 300);
             loadAllSalesMapData();
         }
     }
@@ -127,7 +136,7 @@
         const sidebar = document.getElementById('adminLeftSidebar');
         const backdrop = document.getElementById('mobileSidebarBackdrop');
         if (!sidebar || !backdrop) return;
-        
+
         const isCurrentlyOpen = !sidebar.classList.contains('-translate-x-full');
         const shouldOpen = forceState !== undefined ? forceState : !isCurrentlyOpen;
 
@@ -159,21 +168,14 @@
             tableState.allLogs.data = res.allLogs || [];
             tableState.users.data = res.users || [];
 
-            // Pastikan data master sales unik (hindari duplikasi baris akun dengan username yang sama)
-            const uniqueSalesMap = new Map();
-            (res.salesOnly || []).forEach(s => {
-                const uKey = String(s.username || '').toLowerCase().trim();
-                if (uKey && !uniqueSalesMap.has(uKey)) {
-                    uniqueSalesMap.set(uKey, s);
-                }
-            });
-            masterSalesOnly = Array.from(uniqueSalesMap.values());
+            // Simpan seluruh data master sales aktif (54 personel sales)
+            masterSalesOnly = res.salesOnly || [];
             const totalSales = masterSalesOnly.length;
 
-            // Evaluasi kehadiran per individu sales yang unik pada hari ini
+            // Evaluasi kehadiran per individu sales hari ini menggunakan composite key (username + nama)
             const uniqueSalesLogsMap = new Map();
             (tableState.todayLogs.data || []).forEach(l => {
-                const uKey = String(l.username || '').toLowerCase().trim();
+                const uKey = (String(l.username || '').toLowerCase().trim()) + '|' + (String(l.nama || '').toLowerCase().trim());
                 if (uKey && !uniqueSalesLogsMap.has(uKey)) {
                     uniqueSalesLogsMap.set(uKey, l);
                 }
@@ -241,10 +243,10 @@
     }
 
     // ================= MODAL DETAIL PERSONEL =================
-    function openUserDetailModal(username) {
+    function openUserDetailModal(username, nama) {
         const uKey = String(username).toLowerCase();
-        const userObj = (tableState.users.data || []).find(u => u.username.toLowerCase() === uKey);
-        const userLogs = (tableState.allLogs.data || []).filter(l => l.username.toLowerCase() === uKey);
+        const userObj = (tableState.users.data || []).find(u => u.username.toLowerCase() === uKey && (!nama || u.nama.toLowerCase() === String(nama).toLowerCase()));
+        const userLogs = (tableState.allLogs.data || []).filter(l => l.username.toLowerCase() === uKey && (!nama || l.nama.toLowerCase() === String(nama).toLowerCase()));
 
         document.getElementById('detailModalName').textContent = userObj ? userObj.nama : username;
         document.getElementById('detailModalBadge').textContent = userObj ? `${userObj.status} • ${userObj.role}` : 'Sales';
@@ -737,16 +739,30 @@
             }
         }
 
+        if (typeof L === 'undefined') {
+            console.error('Leaflet library is not loaded');
+            return;
+        }
+
         // Initialize Leaflet Map Instance jika belum dibuat
         if (!currentRouteMapInstance) {
-            currentRouteMapInstance = L.map('leafletRouteMap', {
-                zoomControl: true,
-                attributionControl: false
-            }).setView([-6.914744, 107.609810], 13);
+            const routeContainer = document.getElementById('leafletRouteMap');
+            if (routeContainer && routeContainer._leaflet_id) {
+                routeContainer._leaflet_id = null;
+                routeContainer.innerHTML = '';
+            }
+            try {
+                currentRouteMapInstance = L.map('leafletRouteMap', {
+                    zoomControl: true,
+                    attributionControl: false
+                }).setView([-7.2575, 112.7521], 13);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(currentRouteMapInstance);
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(currentRouteMapInstance);
+            } catch (e) {
+                console.error('Error creating route map instance:', e);
+            }
         }
 
         // Clear existing markers & polyline
@@ -856,7 +872,7 @@
                     iconSize: [20, 20],
                     iconAnchor: [10, 10]
                 });
-                popupContent = `<div class="p-1 text-xs"><b>Titik #${idx+1}</b><br>Waktu: ${p.time} WIB</div>`;
+                popupContent = `<div class="p-1 text-xs"><b>Titik #${idx + 1}</b><br>Waktu: ${p.time} WIB</div>`;
             }
 
             if (markerIcon) {
@@ -967,7 +983,8 @@
         const currentVal = dropdown.value;
         let html = `<option value="">Semua Sales (${allSalesMapDataCache.length} personel)</option>`;
         allSalesMapDataCache.forEach(t => {
-            html += `<option value="${t.username}">${t.nama} (${t.statusKoneksi === 'COMPLETED' ? 'Selesai' : t.statusKoneksi === 'DISCONNECTED' ? 'Terputus' : 'Aktif'})</option>`;
+            const optVal = `${t.username}|${t.nama}`;
+            html += `<option value="${optVal}">${t.nama} (${t.statusKoneksi === 'COMPLETED' ? 'Selesai' : t.statusKoneksi === 'DISCONNECTED' ? 'Terputus' : 'Aktif'})</option>`;
         });
         dropdown.innerHTML = html;
         if (currentVal) dropdown.value = currentVal;
@@ -977,20 +994,43 @@
         const mapContainer = document.getElementById('leafletAllSalesMap');
         if (!mapContainer) return;
 
-        if (!allSalesMapInstance) {
-            allSalesMapInstance = L.map('leafletAllSalesMap', {
-                zoomControl: true,
-                attributionControl: false
-            }).setView([-6.914744, 107.609810], 12);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(allSalesMapInstance);
+        if (typeof L === 'undefined') {
+            console.error('Leaflet library is not loaded');
+            mapContainer.innerHTML = `
+                <div class="h-full min-h-[380px] flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                    <i class="fa-solid fa-map-location-dot text-4xl text-sky-500 mb-2"></i>
+                    <p class="font-bold text-slate-800 text-sm">Modul Peta Leaflet Sedang Dimuat...</p>
+                    <p class="text-xs text-slate-400 mt-1">Jika belum tampil, periksa koneksi internet Anda atau muat ulang halaman.</p>
+                </div>`;
+            return;
         }
 
-        allSalesMapInstance.invalidateSize();
+        if (!allSalesMapInstance) {
+            if (mapContainer._leaflet_id) {
+                mapContainer._leaflet_id = null;
+                mapContainer.innerHTML = '';
+            }
+            try {
+                allSalesMapInstance = L.map('leafletAllSalesMap', {
+                    zoomControl: true,
+                    attributionControl: false
+                }).setView([-7.2575, 112.7521], 8);
 
-        allSalesMapLayers.forEach(l => allSalesMapInstance.removeLayer(l));
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(allSalesMapInstance);
+            } catch (err) {
+                console.error('Error creating Leaflet instance:', err);
+            }
+        }
+
+        if (allSalesMapInstance) {
+            allSalesMapInstance.invalidateSize();
+        }
+
+        allSalesMapLayers.forEach(l => {
+            if (allSalesMapInstance) allSalesMapInstance.removeLayer(l);
+        });
         allSalesMapLayers = [];
 
         const showIn = document.getElementById('chk_map_in') ? document.getElementById('chk_map_in').checked : true;
@@ -999,11 +1039,14 @@
         const showReconnect = document.getElementById('chk_map_reconnect') ? document.getElementById('chk_map_reconnect').checked : true;
         const showOut = document.getElementById('chk_map_out') ? document.getElementById('chk_map_out').checked : true;
 
-        const selectedSalesUsername = document.getElementById('flt_allmap_sales') ? document.getElementById('flt_allmap_sales').value.trim().toLowerCase() : '';
+        const selectedFilterVal = document.getElementById('flt_allmap_sales') ? document.getElementById('flt_allmap_sales').value.trim().toLowerCase() : '';
 
         let filteredTracks = allSalesMapDataCache;
-        if (selectedSalesUsername) {
-            filteredTracks = allSalesMapDataCache.filter(t => t.username.toLowerCase() === selectedSalesUsername);
+        if (selectedFilterVal) {
+            filteredTracks = allSalesMapDataCache.filter(t => {
+                const composite = ((t.username || '') + '|' + (t.nama || '')).toLowerCase();
+                return composite === selectedFilterVal || t.username.toLowerCase() === selectedFilterVal;
+            });
             const mapEl = document.getElementById('leafletAllSalesMap');
             if (mapEl) {
                 mapEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1127,21 +1170,31 @@
 
         allSalesMapBounds = bounds;
 
-        setTimeout(() => {
-            if (allSalesMapInstance) {
-                allSalesMapInstance.invalidateSize();
-                if (validPointCount > 0 && allSalesMapBounds.isValid()) {
-                    allSalesMapInstance.fitBounds(allSalesMapBounds, { padding: [50, 50], maxZoom: 15 });
-                } else if (allSalesMapDataCache.length > 0) {
-                    for (let t of allSalesMapDataCache) {
-                        if (t.waypoints && t.waypoints.length > 0 && typeof t.waypoints[0].lat === 'number') {
-                            allSalesMapInstance.setView([t.waypoints[0].lat, t.waypoints[0].lng], 13);
-                            break;
-                        }
+        const updateMapView = () => {
+            if (!allSalesMapInstance) return;
+            allSalesMapInstance.invalidateSize();
+            if (validPointCount > 0 && allSalesMapBounds && allSalesMapBounds.isValid()) {
+                allSalesMapInstance.fitBounds(allSalesMapBounds, { padding: [40, 40], maxZoom: 15 });
+            } else if (allSalesMapDataCache.length > 0) {
+                let centerSet = false;
+                for (let t of allSalesMapDataCache) {
+                    if (t.waypoints && t.waypoints.length > 0 && typeof t.waypoints[0].lat === 'number') {
+                        allSalesMapInstance.setView([t.waypoints[0].lat, t.waypoints[0].lng], 13);
+                        centerSet = true;
+                        break;
                     }
                 }
+                if (!centerSet) {
+                    allSalesMapInstance.setView([-7.2575, 112.7521], 8);
+                }
+            } else {
+                allSalesMapInstance.setView([-7.2575, 112.7521], 8);
             }
-        }, 150);
+        };
+
+        setTimeout(updateMapView, 50);
+        setTimeout(updateMapView, 250);
+        setTimeout(updateMapView, 600);
     }
 
     function renderAllSalesRosterList(tracks, activeUsername) {
@@ -1176,11 +1229,11 @@
             const statusBadge = isCompleted
                 ? `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Selesai</span>`
                 : isDisconnected
-                ? `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-50 text-rose-600 border border-rose-200 animate-pulse">Terputus</span>`
-                : `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-0.5"></span> Aktif</span>`;
+                    ? `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-50 text-rose-600 border border-rose-200 animate-pulse">Terputus</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-0.5"></span> Aktif</span>`;
 
             return `
-                <div onclick="focusSalesRouteOnMap('${t.username}')"
+                <div onclick="focusSalesRouteOnMap('${t.username}', '${t.nama}')"
                     class="p-2.5 rounded-xl border transition cursor-pointer select-none ${isSelected ? 'bg-white border-sky-500 shadow-sm ring-2 ring-sky-500/20' : 'bg-white hover:bg-slate-100 border-slate-200/80 shadow-2xs'}">
                     <div class="flex items-center justify-between gap-1 mb-1">
                         <div class="flex items-center gap-1.5 min-w-0">
@@ -1202,10 +1255,12 @@
         }).join('');
     }
 
-    function focusSalesRouteOnMap(username) {
+    function focusSalesRouteOnMap(username, nama) {
         const dropdown = document.getElementById('flt_allmap_sales');
         if (dropdown) {
-            dropdown.value = username;
+            const composite = (nama ? `${username}|${nama}` : username);
+            dropdown.value = composite;
+            if (!dropdown.value) dropdown.value = username;
         }
         renderAllSalesMapFromState();
         const mapEl = document.getElementById('leafletAllSalesMap');
