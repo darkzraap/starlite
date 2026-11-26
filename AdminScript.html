@@ -172,11 +172,17 @@
             masterSalesOnly = res.salesOnly || [];
             const totalSales = masterSalesOnly.length;
 
+            // Buat Set key master sales untuk filter yang presisi (hanya sales yang terdaftar di akun Sales)
+            const masterSalesKeySet = new Set(
+                masterSalesOnly.map(s => (String(s.username || '').toLowerCase().trim()) + '|' + (String(s.nama || '').toLowerCase().trim()))
+            );
+
             // Evaluasi kehadiran per individu sales hari ini menggunakan composite key (username + nama)
+            // HANYA hitung log kehadiran dari personel yang terdaftar di master sales!
             const uniqueSalesLogsMap = new Map();
             (tableState.todayLogs.data || []).forEach(l => {
                 const uKey = (String(l.username || '').toLowerCase().trim()) + '|' + (String(l.nama || '').toLowerCase().trim());
-                if (uKey && !uniqueSalesLogsMap.has(uKey)) {
+                if (uKey && masterSalesKeySet.has(uKey) && !uniqueSalesLogsMap.has(uKey)) {
                     uniqueSalesLogsMap.set(uKey, l);
                 }
             });
@@ -188,6 +194,12 @@
             const noClockOutCount = uniqueSalesLogs.filter(l => !l.jamOut || String(l.jamOut).trim() === '').length;
             const belumCount = Math.max(0, totalSales - uniqueSalesLogs.length);
             const rate = totalSales > 0 ? Math.round((uniqueSalesLogs.length / totalSales) * 100) : 0;
+
+            // Sinkronkan data belumAbsen agar selalu tepat 100% dengan sales yang belum clock-in hari ini
+            tableState.belumAbsen.data = masterSalesOnly.filter(s => {
+                const sKey = (String(s.username || '').toLowerCase().trim()) + '|' + (String(s.nama || '').toLowerCase().trim());
+                return !uniqueSalesLogsMap.has(sKey);
+            });
 
             // Hitung akumulasi jarak tempuh hari ini & rata-rata per sales aktif
             let totalKmToday = 0;
@@ -225,6 +237,9 @@
             const bSideLate = document.getElementById('badgeSideLate');
             if (bSideLate) bSideLate.textContent = lateCount;
 
+            // Render statistik per PIC pada Dashboard
+            renderPicDashboardStats(masterSalesOnly, uniqueSalesLogs, tableState.belumAbsen.data);
+
             // Hitung akumulasi sesuai tanggal yang dipilih
             recalculateSummaryByDateRange();
 
@@ -240,6 +255,329 @@
             hideLoading();
             Swal.fire({ icon: 'error', title: 'Gagal Muat Data Admin', text: err.toString(), confirmButtonColor: '#0f766e' });
         }).getAdminDashboardData(selectedDate);
+    }
+
+    // ================= STATISTIK KEHADIRAN PER PIC (DASHBOARD) =================
+    function renderPicDashboardStats(allSales, uniqueSalesLogs, belumAbsenList) {
+        const container = document.getElementById('containerPicStats');
+        const countBadge = document.getElementById('badgePicCount');
+        if (!container) return;
+
+        const normalizePic = p => {
+            const s = String(p || '').trim();
+            return (s && s !== '-') ? s : 'Tanpa PIC';
+        };
+
+        const picMap = {};
+        (allSales || []).forEach(s => {
+            const pKey = normalizePic(s.pic);
+            if (!picMap[pKey]) {
+                picMap[pKey] = {
+                    pic: pKey,
+                    totalSales: 0,
+                    hadir: 0,
+                    onTime: 0,
+                    late: 0,
+                    clockedOut: 0,
+                    noClockOut: 0,
+                    belumIn: 0
+                };
+            }
+            picMap[pKey].totalSales += 1;
+        });
+
+        (uniqueSalesLogs || []).forEach(l => {
+            const pKey = normalizePic(l.pic);
+            if (!picMap[pKey]) {
+                picMap[pKey] = {
+                    pic: pKey,
+                    totalSales: 0,
+                    hadir: 0,
+                    onTime: 0,
+                    late: 0,
+                    clockedOut: 0,
+                    noClockOut: 0,
+                    belumIn: 0
+                };
+            }
+            picMap[pKey].hadir += 1;
+            if (l.statusIn === 'On Time') picMap[pKey].onTime += 1;
+            else if (l.statusIn === 'Late') picMap[pKey].late += 1;
+
+            if (l.jamOut && String(l.jamOut).trim() !== '') {
+                picMap[pKey].clockedOut += 1;
+            } else {
+                picMap[pKey].noClockOut += 1;
+            }
+        });
+
+        const picList = Object.values(picMap);
+        picList.forEach(item => {
+            item.belumIn = Math.max(0, item.totalSales - item.hadir);
+            item.rate = item.totalSales > 0 ? Math.round((item.hadir / item.totalSales) * 100) : 0;
+        });
+
+        picList.sort((a, b) => {
+            if (a.pic === 'Tanpa PIC') return 1;
+            if (b.pic === 'Tanpa PIC') return -1;
+            return a.pic.localeCompare(b.pic);
+        });
+
+        if (countBadge) countBadge.textContent = `${picList.length} PIC`;
+
+        if (picList.length === 0) {
+            container.innerHTML = `<div class="col-span-full p-4 text-center text-xs text-slate-400">Belum ada data PIC sales.</div>`;
+            return;
+        }
+
+        container.innerHTML = picList.map(item => {
+            const rateColor = item.rate >= 80 ? 'text-emerald-600' : item.rate >= 50 ? 'text-sky-600' : 'text-rose-600';
+            const barColor = item.rate >= 80 ? 'bg-emerald-500' : item.rate >= 50 ? 'bg-sky-500' : 'bg-rose-500';
+
+            return `
+                <div class="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-slate-300 transition shadow-2xs space-y-2">
+                    <div class="flex items-center justify-between gap-1">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-2 h-2 rounded-full ${item.pic === 'Tanpa PIC' ? 'bg-slate-400' : 'bg-teal-500'}"></span>
+                            <span class="font-bold text-xs text-slate-900 truncate" title="PIC: ${item.pic}">Pic ${item.pic}</span>
+                        </div>
+                        <span class="font-bold text-xs ${rateColor}">${item.rate}%</span>
+                    </div>
+
+                    <div class="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                        <div class="h-full ${barColor} rounded-full transition-all duration-500" style="width: ${item.rate}%;"></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 divide-x divide-slate-200/60 pt-1 text-center">
+                        <div>
+                            <span class="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block">Total</span>
+                            <span class="text-xs font-extrabold text-slate-800">${item.totalSales}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider block">Hadir</span>
+                            <span class="text-xs font-extrabold text-emerald-600">${item.hadir}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider block">Belum</span>
+                            <span class="text-xs font-extrabold text-rose-600">${item.belumIn}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200/60">
+                        <span>On Time: <b class="text-slate-600">${item.onTime}</b> | Late: <b class="text-amber-600">${item.late}</b></span>
+                        <span>Pulang: <b class="text-slate-600">${item.clockedOut}</b></span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ================= SALIN REKAP LIST KE WHATSAPP (PER PIC) =================
+    function formatIndoDateWA(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const day = parseInt(parts[2], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parts[0];
+        return `${day} ${months[monthIdx] || ''} ${year}`;
+    }
+
+    function getCurrentTimeWA() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function generateTodayLogsWA(data, dateStr) {
+        const formattedDate = formatIndoDateWA(dateStr);
+        const updateTime = getCurrentTimeWA();
+        const totalCount = data.length;
+
+        const onTimeCount = data.filter(l => l.statusIn === 'On Time').length;
+        const lateCount = data.filter(l => l.statusIn === 'Late').length;
+        const clockedOutCount = data.filter(l => l.jamOut && String(l.jamOut).trim() !== '').length;
+        const noClockOutCount = totalCount - clockedOutCount;
+
+        let text = `📋 *LAPORAN ATTENDANCE HARIAN*\n`;
+        text += `🏢 *Starlite Presensi & Operasional*\n`;
+        text += `📅 *Tanggal:* ${formattedDate}\n`;
+        text += `🕒 *Update:* ${updateTime} WIB\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━\n`;
+        text += `📊 *RINGKASAN KEHADIRAN:*\n`;
+        text += `• Clock In: *${totalCount} Sales*\n`;
+        text += `• On Time: *${onTimeCount}*\n`;
+        text += `• Late: *${lateCount}*\n`;
+        text += `• Clock Out: *${clockedOutCount}*\n`;
+        text += `• Belum Pulang: *${noClockOutCount}*\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+        if (totalCount === 0) {
+            text += `Belum ada sales yang melakukan Clock-In pada tanggal ini.\n`;
+            return text;
+        }
+
+        const normalizePic = p => {
+            const s = String(p || '').trim();
+            return (s && s !== '-') ? s : 'Tanpa PIC';
+        };
+
+        const picGroups = {};
+        data.forEach(item => {
+            const pKey = normalizePic(item.pic);
+            if (!picGroups[pKey]) picGroups[pKey] = [];
+            picGroups[pKey].push(item);
+        });
+
+        const sortedPics = Object.keys(picGroups).sort((a, b) => {
+            if (a === 'Tanpa PIC') return 1;
+            if (b === 'Tanpa PIC') return -1;
+            return a.localeCompare(b);
+        });
+
+        sortedPics.forEach((picName, pIdx) => {
+            text += `Pic ${picName}\n\n`;
+            const members = picGroups[picName];
+            members.forEach((m, mIdx) => {
+                const jamIn = m.jamIn || '--:--';
+                const statusIn = m.statusIn ? ` (${m.statusIn})` : '';
+                const jamOut = m.jamOut ? ` | Out: ${m.jamOut}` : ' | Out: Belum';
+                const stasiun = m.stasiunIn || m.stasiun || '-';
+                text += `${mIdx + 1}. ${m.nama} - ${stasiun} [In: ${jamIn}${statusIn}${jamOut}]\n`;
+            });
+            if (pIdx < sortedPics.length - 1) {
+                text += `\n\n`;
+            }
+        });
+
+        return text;
+    }
+
+    function generateBelumAbsenWA(data, dateStr) {
+        const formattedDate = formatIndoDateWA(dateStr);
+        const updateTime = getCurrentTimeWA();
+        const totalBelum = data.length;
+
+        let text = `⚠️ *DAFTAR SALES BELUM CLOCK-IN*\n`;
+        text += `🏢 *Starlite Presensi & Operasional*\n`;
+        text += `📅 *Tanggal:* ${formattedDate}\n`;
+        text += `🕒 *Update:* ${updateTime} WIB\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━\n`;
+        text += `🚨 *Total Belum Absen:* *${totalBelum} Sales*\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+        if (totalBelum === 0) {
+            text += `✅ *Alhamdulillah! Seluruh sales sudah melakukan Clock-In pada hari ini.*\n`;
+            return text;
+        }
+
+        const normalizePic = p => {
+            const s = String(p || '').trim();
+            return (s && s !== '-') ? s : 'Tanpa PIC';
+        };
+
+        const picGroups = {};
+        data.forEach(item => {
+            const pKey = normalizePic(item.pic);
+            if (!picGroups[pKey]) picGroups[pKey] = [];
+            picGroups[pKey].push(item);
+        });
+
+        const sortedPics = Object.keys(picGroups).sort((a, b) => {
+            if (a === 'Tanpa PIC') return 1;
+            if (b === 'Tanpa PIC') return -1;
+            return a.localeCompare(b);
+        });
+
+        sortedPics.forEach((picName, pIdx) => {
+            text += `Pic ${picName}\n\n`;
+            const members = picGroups[picName];
+            members.forEach((m, mIdx) => {
+                const stasiun = m.stasiun || '-';
+                text += `${mIdx + 1}. ${m.nama} - ${stasiun}\n`;
+            });
+            if (pIdx < sortedPics.length - 1) {
+                text += `\n\n`;
+            }
+        });
+
+        return text;
+    }
+
+    function copyWhatsAppList(tableKey) {
+        let filteredData = typeof getFilteredTableData === 'function'
+            ? getFilteredTableData(tableKey)
+            : ((tableState[tableKey] && tableState[tableKey].data) || []);
+
+        const seenWaUsers = new Set();
+        filteredData = (filteredData || []).filter(row => {
+            const uKey = (String(row.username || '').toLowerCase().trim()) + '|' + (String(row.nama || '').toLowerCase().trim());
+            if (seenWaUsers.has(uKey)) return false;
+            seenWaUsers.add(uKey);
+            return true;
+        });
+
+        const dateStr = selectedDate || (document.getElementById('adminDateFilter') ? document.getElementById('adminDateFilter').value : '');
+
+        let text = '';
+        let title = '';
+
+        if (tableKey === 'todayLogs') {
+            text = generateTodayLogsWA(filteredData, dateStr);
+            title = 'Attendance Harian';
+        } else if (tableKey === 'belumAbsen') {
+            text = generateBelumAbsenWA(filteredData, dateStr);
+            title = 'Belum Clock-In';
+        }
+
+        if (!text) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Disalin!',
+                    text: `Daftar ${title} tersusun rapi per PIC dan siap di-paste ke WhatsApp.`,
+                    confirmButtonColor: '#0f766e',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }).catch(() => {
+                copyToClipboardFallback_(text, title);
+            });
+        } else {
+            copyToClipboardFallback_(text, title);
+        }
+    }
+
+    function copyToClipboardFallback_(text, title) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+            document.execCommand('copy');
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Disalin!',
+                text: `Daftar ${title} tersusun rapi per PIC dan siap di-paste ke WhatsApp.`,
+                confirmButtonColor: '#0f766e',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (e) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Menyalin',
+                text: 'Silakan salin teks secara manual dari peramban Anda.',
+                confirmButtonColor: '#0284c7'
+            });
+        }
+        document.body.removeChild(ta);
     }
 
     // ================= MODAL DETAIL PERSONEL =================
@@ -445,6 +783,7 @@
         const userObj = {
             id: document.getElementById('usrId').value,
             nama: document.getElementById('usrNama').value.trim(),
+            pic: document.getElementById('usrPic') ? document.getElementById('usrPic').value.trim() : '',
             username: document.getElementById('usrUsername').value.trim(),
             password: document.getElementById('usrPassword').value.trim(),
             role: document.getElementById('usrRole').value,
@@ -495,6 +834,7 @@
         document.getElementById('formUserTitle').textContent = 'Edit Akun: ' + u.nama;
         document.getElementById('usrId').value = u.id;
         document.getElementById('usrNama').value = u.nama;
+        if (document.getElementById('usrPic')) document.getElementById('usrPic').value = u.pic || '';
         document.getElementById('usrUsername').value = u.username;
         document.getElementById('usrPassword').value = u.password;
         document.getElementById('usrRole').value = u.role;
@@ -513,6 +853,7 @@
         const form = document.getElementById('userForm');
         if (form) form.reset();
         document.getElementById('usrId').value = '';
+        if (document.getElementById('usrPic')) document.getElementById('usrPic').value = '';
     }
 
     function deleteUser(id, nama) {
@@ -982,12 +1323,18 @@
 
         const currentVal = dropdown.value;
         let html = `<option value="">Semua Sales (${allSalesMapDataCache.length} personel)</option>`;
+        let hasMatch = false;
         allSalesMapDataCache.forEach(t => {
             const optVal = `${t.username}|${t.nama}`;
+            if (currentVal && (optVal === currentVal || t.username === currentVal)) hasMatch = true;
             html += `<option value="${optVal}">${t.nama} (${t.statusKoneksi === 'COMPLETED' ? 'Selesai' : t.statusKoneksi === 'DISCONNECTED' ? 'Terputus' : 'Aktif'})</option>`;
         });
         dropdown.innerHTML = html;
-        if (currentVal) dropdown.value = currentVal;
+        if (currentVal && hasMatch) {
+            dropdown.value = currentVal;
+        } else {
+            dropdown.value = '';
+        }
     }
 
     function renderAllSalesMapFromState() {

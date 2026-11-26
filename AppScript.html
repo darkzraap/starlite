@@ -146,7 +146,7 @@
 
         if (tableKey === 'todayLogs' || tableKey === 'allLogs') {
             const isAll = tableKey === 'allLogs';
-            const colSpan = isAll ? 12 : 11;
+            const colSpan = 12;
             if (meta.sliced.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-8 text-center text-slate-400 font-medium">Tidak ada data kehadiran yang cocok dengan filter pencarian.</td></tr>`;
             } else {
@@ -227,6 +227,7 @@
                             <div class="font-bold text-slate-900 leading-tight">${l.nama}</div>
                             <div class="text-[10.5px] text-slate-400 font-mono-code">${l.username}</div>
                           </td>
+                          ${!isAll ? `<td class="tiimi-td whitespace-nowrap"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 text-slate-700">${l.pic || '-'}</span></td>` : ''}
                           <td class="tiimi-td">
                             <span class="px-2 py-0.5 rounded-lg text-[10.5px] font-semibold ${l.statusSales === 'Inhouse' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}">${l.statusSales}</span>
                           </td>
@@ -257,11 +258,12 @@
 
         else if (tableKey === 'belumAbsen') {
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check text-lg mr-1.5"></i>Seluruh sales sudah melakukan Clock-In pada tanggal ini.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check text-lg mr-1.5"></i>Seluruh sales sudah melakukan Clock-In pada tanggal ini.</td></tr>`;
             } else {
                 tbody.innerHTML = meta.sliced.map(u => `
                     <tr class="tiimi-row">
                       <td class="tiimi-td font-bold text-slate-900">${u.nama}</td>
+                      <td class="tiimi-td whitespace-nowrap"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 text-slate-700">${u.pic || '-'}</span></td>
                       <td class="tiimi-td font-mono-code text-xs text-slate-500">${u.username}</td>
                       <td class="tiimi-td"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 text-slate-700">${u.status}</span></td>
                       <td class="tiimi-td text-slate-600 font-medium">${u.provinsi}</td>
@@ -341,11 +343,12 @@
 
         else if (tableKey === 'users') {
             if (meta.sliced.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Data akun tidak ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Data akun tidak ditemukan.</td></tr>`;
             } else {
                 tbody.innerHTML = meta.sliced.map(u => `
                     <tr class="tiimi-row">
                       <td class="tiimi-td font-bold text-slate-900">${u.nama}</td>
+                      <td class="tiimi-td whitespace-nowrap"><span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 text-slate-700">${u.pic || '-'}</span></td>
                       <td class="tiimi-td font-mono-code text-[11px]">
                         <span class="text-teal-700 font-semibold">${u.username}</span>
                         <span class="text-slate-400 ml-1">(${u.password})</span>

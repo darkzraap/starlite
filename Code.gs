@@ -96,6 +96,7 @@ function setupDatabase() {
   }
 
   upgradeAbsensiSheetHeaders_();
+  upgradeUsersSheetHeaders_();
   setupGpsTracksSheet_();
 
   try {
@@ -103,6 +104,19 @@ function setupDatabase() {
   } catch (e) {}
 
   return "Setup Database Berhasil!";
+}
+
+function upgradeUsersSheetHeaders_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('USERS');
+  if (!sheet) return;
+  const lastCol = sheet.getLastColumn();
+  const requiredHeaders = ['ID_User', 'Username', 'Password', 'Role', 'Nama_Sales', 'Status', 'Provinsi', 'Stasiun', 'PIC'];
+  if (lastCol < requiredHeaders.length) {
+    const missingHeaders = requiredHeaders.slice(lastCol);
+    sheet.getRange(1, lastCol + 1, 1, missingHeaders.length).setValues([missingHeaders]);
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setFontWeight('bold').setBackground('#1c2434').setFontColor('#ffffff');
+  }
 }
 
 function upgradeAbsensiSheetHeaders_() {
@@ -142,6 +156,7 @@ function setupCheck_() {
   if (!ss.getSheetByName('USERS') || !ss.getSheetByName('ABSENSI') || !ss.getSheetByName('SETTINGS') || !ss.getSheetByName('STASIUN')) {
     setupDatabase();
   } else {
+    upgradeUsersSheetHeaders_();
     upgradeAbsensiSheetHeaders_();
     setupGpsTracksSheet_();
   }
@@ -214,7 +229,8 @@ function loginUser(username, password) {
           nama: String(data[i][4]),
           status: String(data[i][5]),
           provinsi: String(data[i][6]),
-          stasiun: String(data[i][7])
+          stasiun: String(data[i][7]),
+          pic: String(data[i][8] || '').trim()
         }
       };
     }
@@ -257,7 +273,8 @@ function verifyUserSession(username, userId) {
           nama: String(data[i][4]),
           status: String(data[i][5]),
           provinsi: String(data[i][6]),
-          stasiun: String(data[i][7])
+          stasiun: String(data[i][7]),
+          pic: String(data[i][8] || '').trim()
         }
       };
     }
@@ -675,11 +692,14 @@ function getAdminDashboardData(filterDate) {
   let usersList = [];
   let salesOnlyList = [];
   let validUsernamesSet = {};
+  const userPicMap = {};
+  const userRoleMap = {};
 
   for (let i = 1; i < usersData.length; i++) {
     if (!usersData[i][0]) continue;
     let uname = String(usersData[i][1]).trim();
     let role = String(usersData[i][3]).trim();
+    let pic = String(usersData[i][8] || '').trim();
     let u = {
       id: String(usersData[i][0]),
       username: uname,
@@ -688,10 +708,17 @@ function getAdminDashboardData(filterDate) {
       nama: String(usersData[i][4]).trim(),
       status: String(usersData[i][5]).trim(),
       provinsi: String(usersData[i][6]).trim(),
-      stasiun: String(usersData[i][7]).trim()
+      stasiun: String(usersData[i][7]).trim(),
+      pic: pic
     };
     usersList.push(u);
     validUsernamesSet[uname.toLowerCase()] = true;
+    const uKey = uname.toLowerCase() + '|' + u.nama.toLowerCase();
+    userPicMap[uKey] = pic;
+    if (!userPicMap[uname.toLowerCase()]) userPicMap[uname.toLowerCase()] = pic;
+    userRoleMap[uKey] = role;
+    if (!userRoleMap[uname.toLowerCase()]) userRoleMap[uname.toLowerCase()] = role;
+
     if (role.toLowerCase() === 'sales') {
       salesOnlyList.push(u);
     }
@@ -709,6 +736,9 @@ function getAdminDashboardData(filterDate) {
     let rowDate = formatRowDate_(absenData[i][1]);
     let jamInStr = formatRowTime_(absenData[i][7]);
     let jamOutStr = formatRowTime_(absenData[i][12]);
+    const uCompKey = unameKey + '|' + String(absenData[i][3]).toLowerCase().trim();
+    const logPic = userPicMap[uCompKey] || userPicMap[unameKey] || '-';
+    const logRole = userRoleMap[uCompKey] || userRoleMap[unameKey] || 'Sales';
 
     let logItem = {
       id: String(absenData[i][0]),
@@ -718,6 +748,8 @@ function getAdminDashboardData(filterDate) {
       statusSales: String(absenData[i][4]),
       provinsi: String(absenData[i][5]),
       stasiun: String(absenData[i][6]),
+      pic: logPic,
+      role: logRole,
       jamIn: jamInStr,
       statusIn: String(absenData[i][8] || ''),
       koordinatIn: String(absenData[i][9] || ''),
@@ -1008,11 +1040,21 @@ function getAllSalesTrackingData(dateStr) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const trackSheet = ss.getSheetByName('GPS_TRACKS');
   const absenSheet = ss.getSheetByName('ABSENSI');
+  const userSheet = ss.getSheetByName('USERS');
 
   const todayStr = dateStr || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
 
   const trackData = trackSheet ? trackSheet.getDataRange().getValues() : [];
   const absenData = absenSheet.getDataRange().getValues();
+  const uData = userSheet ? userSheet.getDataRange().getValues() : [];
+  const uPicMap = {};
+  for (let u = 1; u < uData.length; u++) {
+    const un = String(uData[u][1]).trim().toLowerCase();
+    const nm = String(uData[u][4]).trim().toLowerCase();
+    const p = String(uData[u][8] || '').trim();
+    uPicMap[un + '|' + nm] = p;
+    if (!uPicMap[un]) uPicMap[un] = p;
+  }
 
   // Kumpulkan seluruh data absen hari ini
   const todayAbsenList = [];
@@ -1101,6 +1143,7 @@ function getAllSalesTrackingData(dateStr) {
         tanggal: rowTgl,
         username: String(trackData[i][2]),
         nama: String(trackData[i][3]) || absenInfo.nama || rUname,
+        pic: uPicMap[rUname + '|' + rNama] || uPicMap[rUname] || absenInfo.pic || '-',
         statusKoneksi: String(trackData[i][4] || (absenInfo.jamOut ? 'COMPLETED' : 'CONNECTED')),
         lastSync: String(trackData[i][5] || ''),
         totalTitik: Number(trackData[i][6] || pts.length),
@@ -1136,6 +1179,7 @@ function getAllSalesTrackingData(dateStr) {
         tanggal: a.tanggal,
         username: a.username,
         nama: a.nama,
+        pic: uPicMap[a.username.toLowerCase() + '|' + a.nama.toLowerCase()] || uPicMap[a.username.toLowerCase()] || a.pic || '-',
         statusKoneksi: a.jamOut ? 'COMPLETED' : 'CONNECTED',
         lastSync: a.jamOut || a.jamIn,
         totalTitik: synPts.length,
@@ -1264,14 +1308,15 @@ function saveUserAdmin(userObj, callerRole) {
       if (String(data[i][0]) === String(userObj.id)) {
         const oldUsername = String(data[i][1]);
         const oldNama = String(data[i][4]);
-        sheet.getRange(i + 1, 2, 1, 7).setValues([[
+        sheet.getRange(i + 1, 2, 1, 8).setValues([[
           userObj.username,
           userObj.password,
           userObj.role,
           userObj.nama,
           userObj.status,
           userObj.provinsi,
-          userObj.stasiun
+          userObj.stasiun,
+          userObj.pic || ''
         ]]);
 
         // Jika Nama Sales diubah, ubah juga nama foldernya di Google Drive agar tetap rapi
@@ -1315,7 +1360,8 @@ function saveUserAdmin(userObj, callerRole) {
       userObj.nama,
       userObj.status,
       userObj.provinsi,
-      userObj.stasiun
+      userObj.stasiun,
+      userObj.pic || ''
     ]);
     return { success: true, message: 'Akun baru berhasil ditambahkan.' };
   }
@@ -1399,7 +1445,39 @@ function formatRowDate_(val) {
   if (Object.prototype.toString.call(val) === '[object Date]') {
     return Utilities.formatDate(val, 'Asia/Jakarta', 'yyyy-MM-dd');
   }
-  return String(val).replace(/^'/, '').trim();
+  let s = String(val).replace(/^'/, '').trim();
+  if (!s) return '';
+  if (s.includes('T')) s = s.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // Format DD/MM/YYYY atau DD-MM-YYYY
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) {
+    let p1 = parseInt(m[1], 10);
+    let p2 = parseInt(m[2], 10);
+    let yr = m[3];
+    let day = p1;
+    let month = p2;
+    if (p2 > 12) {
+      day = p2;
+      month = p1;
+    }
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    return yr + '-' + pad(month) + '-' + pad(day);
+  }
+
+  // Format YYYY/MM/DD
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) {
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    return m[1] + '-' + pad(m[2]) + '-' + pad(m[3]);
+  }
+
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return Utilities.formatDate(d, 'Asia/Jakarta', 'yyyy-MM-dd');
+  }
+  return s;
 }
 
 function formatRowTime_(val) {
