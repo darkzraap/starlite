@@ -441,26 +441,45 @@
             const members = picGroups[picName];
             members.forEach((m, mIdx) => {
                 const jamIn = m.jamIn || '--:--';
-                const statusIn = m.statusIn ? ` (${m.statusIn})` : '';
-                const jamOut = m.jamOut ? ` | Out: ${m.jamOut}` : ' | Out: Belum Pulang';
+                const jamOut = (m.jamOut && String(m.jamOut).trim() !== '') ? m.jamOut : '--:--';
+                const statusMasuk = m.statusIn === 'On Time' ? '✅ Tepat Waktu'
+                    : m.statusIn === 'Late' ? '⚠️ Terlambat' : '-';
+                const statusPulang = (m.jamOut && String(m.jamOut).trim() !== '')
+                    ? '✅ Sudah Clock-Out' : '⏳ Belum Clock-Out';
                 const stasiun = m.stasiunIn || m.stasiun || '-';
-                const wilayah = m.visitKemanaIn ? ` [Wilayah: ${m.visitKemanaIn}]` : '';
+                const wilayahIn = (m.visitKemanaIn && String(m.visitKemanaIn).trim() !== '') ? m.visitKemanaIn : '-';
 
-                // Target & Realisasi
-                const targetWo = m.targetVisit !== '' && m.targetVisit !== undefined ? m.targetVisit : '-';
-                const realWo = m.aktualWo !== '' && m.aktualWo !== undefined ? m.aktualWo : '-';
-                const targetHc = m.targetClosingHc !== '' && m.targetClosingHc !== undefined ? m.targetClosingHc : '-';
-                const realHc = m.aktualHc !== '' && m.aktualHc !== undefined ? m.aktualHc : '-';
-                const pendingWo = m.pendingWo !== '' && m.pendingWo !== undefined ? ` | Pending WO: ${m.pendingWo}` : '';
+                const val = (v) => (v !== '' && v !== undefined && v !== null) ? v : '-';
+                const targetWo = val(m.targetVisit);
+                const realWo = val(m.aktualWo);
+                const pendingWo = val(m.pendingWo);
+                const targetHc = val(m.targetClosingHc);
+                const realHc = val(m.aktualHc);
 
-                // Jarak & Titik Rute GPS (jika ada)
-                const jarakKm = Number(m.totalJarakKm || 0) > 0 ? ` | Jarak: ${Number(m.totalJarakKm).toFixed(2)} km` : '';
+                const jarakKm = Number(m.totalJarakKm || 0) > 0
+                    ? `${Number(m.totalJarakKm).toFixed(2)} km` : '-';
+                const totalTitik = Number(m.totalTitik || 0) > 0
+                    ? `${m.totalTitik} titik` : '-';
 
-                text += `${mIdx + 1}. *${m.nama}* (${m.statusSales || 'Sales'})\n`;
-                text += `   • Stasiun: ${stasiun}${wilayah}\n`;
-                text += `   • Presensi: In ${jamIn}${statusIn}${jamOut}${jarakKm}\n`;
-                text += `   • WO: Target ${targetWo} / Realisasi ${realWo}${pendingWo}\n`;
-                text += `   • HC: Target ${targetHc} / Realisasi ${realHc}\n\n`;
+                let durasi = '-';
+                if (m.jamIn && m.jamOut && String(m.jamOut).trim() !== '') {
+                    const p1 = String(m.jamIn).split(':').map(Number);
+                    const p2 = String(m.jamOut).split(':').map(Number);
+                    if (p1.length >= 2 && p2.length >= 2) {
+                        const diff = (p2[0] * 60 + p2[1]) - (p1[0] * 60 + p1[1]);
+                        if (diff > 0) durasi = `${Math.floor(diff / 60)} jam ${diff % 60} menit`;
+                    }
+                }
+
+                text += `${mIdx + 1}. *${m.nama}* (${m.statusSales || 'Sales'} | ${m.provinsi || '-'})\n`;
+                text += `   🏢 Stasiun      : ${stasiun}\n`;
+                text += `   📍 Wilayah      : ${wilayahIn}\n`;
+                text += `   🕐 Clock-In     : ${jamIn} — ${statusMasuk}\n`;
+                text += `   🕔 Clock-Out    : ${jamOut} — ${statusPulang}\n`;
+                text += `   ⏱️ Durasi Kerja : ${durasi}\n`;
+                text += `   🗺️ Jarak Tempuh : ${jarakKm} (${totalTitik})\n`;
+                text += `   📦 WO  : Target *${targetWo}* | Realisasi *${realWo}* | Pending *${pendingWo}*\n`;
+                text += `   👥 HC  : Target *${targetHc}* | Realisasi *${realHc}*\n\n`;
             });
             if (pIdx < sortedPics.length - 1) {
                 text += `\n`;
