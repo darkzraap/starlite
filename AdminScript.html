@@ -456,10 +456,7 @@
                 const targetHc = val(m.targetClosingHc);
                 const realHc = val(m.aktualHc);
 
-                const jarakKm = Number(m.totalJarakKm || 0) > 0
-                    ? `${Number(m.totalJarakKm).toFixed(2)} km` : '-';
-                const totalTitik = Number(m.totalTitik || 0) > 0
-                    ? `${m.totalTitik} titik` : '-';
+
 
                 let durasi = '-';
                 if (m.jamIn && m.jamOut && String(m.jamOut).trim() !== '') {
@@ -476,8 +473,6 @@
                 text += `   📍 Wilayah      : ${wilayahIn}\n`;
                 text += `   🕐 Clock-In     : ${jamIn} — ${statusMasuk}\n`;
                 text += `   🕔 Clock-Out    : ${jamOut} — ${statusPulang}\n`;
-                text += `   ⏱️ Durasi Kerja : ${durasi}\n`;
-                text += `   🗺️ Jarak Tempuh : ${jarakKm} (${totalTitik})\n`;
                 text += `   📦 WO  : Target *${targetWo}* | Realisasi *${realWo}* | Pending *${pendingWo}*\n`;
                 text += `   👥 HC  : Target *${targetHc}* | Realisasi *${realHc}*\n\n`;
             });
