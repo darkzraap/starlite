@@ -442,12 +442,28 @@
             members.forEach((m, mIdx) => {
                 const jamIn = m.jamIn || '--:--';
                 const statusIn = m.statusIn ? ` (${m.statusIn})` : '';
-                const jamOut = m.jamOut ? ` | Out: ${m.jamOut}` : ' | Out: Belum';
+                const jamOut = m.jamOut ? ` | Out: ${m.jamOut}` : ' | Out: Belum Pulang';
                 const stasiun = m.stasiunIn || m.stasiun || '-';
-                text += `${mIdx + 1}. ${m.nama} - ${stasiun} [In: ${jamIn}${statusIn}${jamOut}]\n`;
+                const wilayah = m.visitKemanaIn ? ` [Wilayah: ${m.visitKemanaIn}]` : '';
+
+                // Target & Realisasi
+                const targetWo = m.targetVisit !== '' && m.targetVisit !== undefined ? m.targetVisit : '-';
+                const realWo = m.aktualWo !== '' && m.aktualWo !== undefined ? m.aktualWo : '-';
+                const targetHc = m.targetClosingHc !== '' && m.targetClosingHc !== undefined ? m.targetClosingHc : '-';
+                const realHc = m.aktualHc !== '' && m.aktualHc !== undefined ? m.aktualHc : '-';
+                const pendingWo = m.pendingWo !== '' && m.pendingWo !== undefined ? ` | Pending WO: ${m.pendingWo}` : '';
+
+                // Jarak & Titik Rute GPS (jika ada)
+                const jarakKm = Number(m.totalJarakKm || 0) > 0 ? ` | Jarak: ${Number(m.totalJarakKm).toFixed(2)} km` : '';
+
+                text += `${mIdx + 1}. *${m.nama}* (${m.statusSales || 'Sales'})\n`;
+                text += `   • Stasiun: ${stasiun}${wilayah}\n`;
+                text += `   • Presensi: In ${jamIn}${statusIn}${jamOut}${jarakKm}\n`;
+                text += `   • WO: Target ${targetWo} / Realisasi ${realWo}${pendingWo}\n`;
+                text += `   • HC: Target ${targetHc} / Realisasi ${realHc}\n\n`;
             });
             if (pIdx < sortedPics.length - 1) {
-                text += `\n\n`;
+                text += `\n`;
             }
         });
 
